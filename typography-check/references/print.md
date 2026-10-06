@@ -33,14 +33,14 @@ Check every finding against this table before reporting it. These are the common
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `print/body-size` | Body 9.5–11.5pt (10–10.5pt workhorse) for books; 8–9pt acceptable for editorial on short measures with a large x-height. Judge by x-height, not the number. | Adjust size with the measure and leading as one decision. | P1 if outside 8–12pt |
+| `print/body-size` | Body 9.5–11.5pt (10–10.5pt workhorse) for books; 8–9pt acceptable for editorial on short measures with a large x-height. Judge by x-height, not the number. | Adjust size with the measure and leading as one decision. | P1 outside 8–12pt, P2 otherwise |
 | `print/small-sizes` | Captions 7.5–8.5pt; footnotes ~8pt; nothing that must be read below 6pt. | Raise sizes. | P1 below 6pt, P3 otherwise |
 | `print/leading` | Text leading 2–4pt above the size (120–135%); more for long measures and large x-heights. Display sizes tighten toward solid (100%) or below. Solid leading at text sizes (13/13 subhead) collides when it wraps. | e.g. 10.5/14, 8/10.5, display 24/26. | P2 |
-| `print/measure` | 45–75 characters per line (66 ideal); 40–50 per column in multi-column work. | Change the text block width, size or columns. | P1 if over ~85 |
+| `print/measure` | 45–75 characters per line (66 ideal); 40–50 per column in multi-column work. | Change the text block width, size or columns. | P1 over ~85, P2 otherwise |
 | `print/print-faces` | Faces suited to print at the sizes used; optical sizes where the family has them (text cut ~8–14pt, display cut 24pt+). A display cut at 9pt is spidery; a text cut at 60pt is coarse. | Use the right optical size. | P2 |
 | `print/charset` | The face covers every glyph the job needs (small caps, oldstyle and tabular figures, fractions, language coverage). There is no fallback on paper. | Check the character set before committing. | P1 if glyphs are missing |
 | `print/rendered-font` | The face in the output is the one specified. A font file missing from the project, not installed or failing to load is silently replaced (Times, Helvetica, DejaVu). Confirm with `inspect-pdf.py` (`structure.fonts`) on the exported PDF. | Supply the font files, then re-export and re-inspect. | P0 |
-| `print/licence` | The font licence covers desktop/print use and PDF embedding. Informational unless it is clearly a web-only licence. | Check the EULA. | info |
+| `print/licence` | The font licence covers desktop/print use and PDF embedding. A clearly web-only licence blocks the print run. | Check the EULA. | P3, P1 if the licence is web-only |
 
 ## Justification and hyphenation
 
@@ -51,7 +51,7 @@ Check every finding against this table before reporting it. These are the common
 | `print/word-spacing` | Word spacing constrained tightly (about 85% min / 100% desired / 115% max) with little or no letterspacing. | Set in the paragraph composer (InDesign) or engine settings. | P3 |
 | `print/ragged-where-narrow` | Narrow measures and captions are ragged right, with the rag controlled (no shapes, no lone short words, minimal hyphenation). | Switch to ragged. | P2 |
 | `print/no-hyphenate-display` | Headings, titles, labels and tables are never hyphenated or justified. | `hyphens: manual` and `text-align: left/center` on them. | P2 |
-| `print/widows-orphans` | No paragraph's last line strands at the top of a page (widow) and no first line at the foot (orphan); no runt (single short word) on a paragraph's last line. | Edit tracking, copy or breaks by hand; CSS `orphans: 2; widows: 2`. | P2 |
+| `print/widows-orphans` | No paragraph's last line strands at the top of a page (widow) and no first line at the foot (orphan); no runt (single short word) on a paragraph's last line. | Edit tracking, copy or breaks by hand. In CSS, `orphans` and `widows` already default to 2 in Chromium and WebKit, and Firefox ignores them, so check the PDF rather than the stylesheet. | P2 |
 | `print/keep-with-next` | Headings never strand at the foot of a page or column; tables and figures do not split. | CSS: `break-after: avoid` on headings, `break-inside: avoid` on figures, tables and code. DTP: keep options. | P1 |
 | `print/hanging-punctuation` | Quotes, hyphens and commas at line edges hang into the margin (optical margin alignment) in carefully set work. | InDesign Optical Margin Alignment; CSS `hanging-punctuation` where the engine supports it. | P3 |
 

@@ -2,6 +2,7 @@ import { launch, openAt, options } from './lib/browser.mjs';
 
 const OPTICAL = {
   '.command__copy': 'Copy buttons are centred optically against their step, not set on the grid.',
+  '.button': 'The button sits on the grid; its label is centred optically in the box.',
   '.page-sheet': 'The print page specimen is set on its own 13pt leading.',
 };
 
@@ -10,8 +11,9 @@ const args = options({ tolerance: { type: 'string', default: '1' }, verbose: { t
 if (args.help) {
   console.log(`Check that every line of text sits on the 27px baseline grid.
 
-Each text block gets a zero-height inline-block probe before its first and after
-its last character; the probe's bottom edge is the line's baseline, measured from
+Each text block gets a zero-height inline-block probe, inside a temporary span
+around its first and last runs of text, before the first and after the last
+character; the probe's bottom edge is the line's baseline, measured from
 the top of <body> modulo --line.
 
   node scripts/baseline.mjs [--url URL] [--widths 1280,1024,768,375] [--tolerance 1] [-v]
@@ -44,22 +46,28 @@ function probe({ exceptions, tolerance }) {
     return true;
   };
 
-  const blocks = new Set();
+  const blocks = new Map();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let t = walker.nextNode(); t; t = walker.nextNode()) {
     if (!t.data.trim()) continue;
     let el = t.parentElement;
     while (el && ['inline', 'contents'].includes(getComputedStyle(el).display)) el = el.parentElement;
-    if (el && !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(el.tagName)) blocks.add(el);
+    if (!el || ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(el.tagName)) continue;
+    if (!blocks.has(el)) blocks.set(el, []);
+    blocks.get(el).push(t);
   }
 
   const marker = document.createElement('span');
   marker.style.cssText = 'display:inline-block;width:0;height:0;margin:0;padding:0;border:0;vertical-align:baseline';
-  const baselineAt = (el, where) => {
+  const baselineAt = (text, where) => {
+    const wrap = document.createElement('span');
+    text.before(wrap);
+    wrap.append(text);
     const m = marker.cloneNode();
-    where === 'first' ? el.prepend(m) : el.append(m);
+    where === 'first' ? wrap.prepend(m) : wrap.append(m);
     const y = m.getBoundingClientRect().bottom + scrollY - origin;
-    m.remove();
+    wrap.before(text);
+    wrap.remove();
     return y;
   };
   const describe = (el) => {
@@ -70,7 +78,7 @@ function probe({ exceptions, tolerance }) {
 
   const checked = [];
   const skipped = [];
-  for (const el of blocks) {
+  for (const [el, texts] of blocks) {
     if (!shown(el)) continue;
     const rule = exceptions.find((s) => el.closest(s));
     if (rule) {
@@ -78,7 +86,7 @@ function probe({ exceptions, tolerance }) {
       continue;
     }
     const lines = ['first', 'last'].map((where) => {
-      const y = baselineAt(el, where);
+      const y = baselineAt(where === 'first' ? texts[0] : texts.at(-1), where);
       const off = ((y % line) + line) % line;
       return { where, y: Math.round(y * 100) / 100, off: Math.round(Math.min(off, line - off) * 100) / 100 };
     });

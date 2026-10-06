@@ -9,7 +9,7 @@ Run `python3 -I scripts/inspect-pdf.py FILE.pdf` first. It reports page boxes, f
 | `medium_hint` | `press` when trim/bleed boxes, PDF/X or CMYK are present. `office/screen` otherwise. An office/screen PDF of a book or magazine page size is probably a proof that is not yet press-ready: ask. |
 | `structure.fonts[].embedded` | `false` is P0: the PDF will substitute fonts on other machines (the classic "printed in Courier"). |
 | `structure.fonts[].name` | Compare with the intended faces. Times, Helvetica, Arial or DejaVu where a different face was specified means the source font never loaded and the renderer substituted: `print/rendered-font`, P0, and invisible in a code review. If you can't see the source, ask which face was intended rather than guess. |
-| `structure.colour_operators` | RGB text in a press PDF, `(four-colour grey/black)` or `(registration black)` labels are production findings (`print/text-100k`). |
+| `structure.colour_operators` | RGB colour, `(four-colour grey/black)` or `(registration black)` in a press PDF is a production finding (`print/text-100k`) when it colours text. The counts cover fills and strokes, not only text, so confirm on a rendered page which ones set type. |
 | `text.body_size_pt`, `body_leading_pt`, `body_chars_per_line_median_full_lines` | Check against `print/body-size`, `print/leading`, `print/measure`. These are measured, not guessed: prefer them to visual estimates. |
 | `text.sizes_pt_by_share`, `scale_ratios` | Check the scale and the smallest size (`print/small-sizes`). |
 | `text.text_block_margins_mm_approx` | Check `print/margin-hierarchy` (bottom largest). Approximate: derived from text extremes. |

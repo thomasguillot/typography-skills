@@ -1,6 +1,6 @@
 async () => {
   await document.fonts.ready;
-  const MAX_ROLES = 60;
+  const MAX_ROLES = 80;
   const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 
   const pixel = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
@@ -30,26 +30,53 @@ async () => {
     b: top.b * top.a + under.b * (1 - top.a),
     a: 1,
   });
-  const backgroundOf = (el) => {
-    let bg = { r: 255, g: 255, b: 255, a: 1 };
-    const stack = [];
+  const NONE = { r: 0, g: 0, b: 0, a: 0 };
+  const over = (top, under) => {
+    const a = top.a + under.a * (1 - top.a);
+    if (!a) return NONE;
+    const mix = (k) => (top[k] * top.a + under[k] * under.a * (1 - top.a)) / a;
+    return { r: mix('r'), g: mix('g'), b: mix('b'), a };
+  };
+  const probe = document.documentElement.appendChild(document.createElement('type-canvas-probe'));
+  probe.style.backgroundColor = 'Canvas';
+  const canvasColour = { ...(parseColour(getComputedStyle(probe).backgroundColor) ?? { r: 255, g: 255, b: 255 }), a: 1 };
+  probe.remove();
+  const opaqueBg = (el) => {
+    const c = el && parseColour(getComputedStyle(el).backgroundColor);
+    return c && c.a > 0 ? c : null;
+  };
+  const propagated = opaqueBg(document.documentElement) ? document.documentElement : opaqueBg(document.body) ? document.body : null;
+  const pageBg = propagated ? over(opaqueBg(propagated), canvasColour) : canvasColour;
+  const paint = (el, fg = NONE, withOpacity = true) => {
+    let text = fg;
+    let back = NONE;
+    let opacity = 1;
     let imageBehind = false;
+    let covered = false;
     for (let n = el; n; n = n.parentElement) {
       const cs = getComputedStyle(n);
-      if (cs.backgroundImage && cs.backgroundImage !== 'none') imageBehind = true;
-      const c = parseColour(cs.backgroundColor);
-      if (c && c.a > 0) {
-        stack.push(c);
-        if (c.a === 1) break;
+      if (!covered && cs.backgroundImage && cs.backgroundImage !== 'none') imageBehind = true;
+      const c = n === propagated ? null : opaqueBg(n);
+      if (c) {
+        text = over(text, c);
+        back = over(back, c);
+        if (c.a === 1) covered = true;
+      }
+      const o = Number(cs.opacity);
+      if (o < 1) {
+        opacity *= o;
+        if (withOpacity) {
+          text = { ...text, a: text.a * o };
+          back = { ...back, a: back.a * o };
+        }
       }
     }
-    for (const c of stack.reverse()) bg = blend(c, bg);
-    return { bg, imageBehind };
+    return { fg: over(text, pageBg), bg: over(back, pageBg), opacity, imageBehind };
   };
-  const contrast = (fg, bg) => {
+  const ratio = (fg, bg) => {
     const a = luminance(blend(fg, bg)) + 0.05;
     const b = luminance(bg) + 0.05;
-    return round(Math.max(a, b) / Math.min(a, b), 2);
+    return Math.max(a, b) / Math.min(a, b);
   };
   const apcaY = ({ r, g, b }) => {
     const y = 0.2126729 * (r / 255) ** 2.4 + 0.7151522 * (g / 255) ** 2.4 + 0.072175 * (b / 255) ** 2.4;
@@ -84,6 +111,18 @@ async () => {
     return canvas.measureText(sample).width / sample.length;
   };
 
+  const lineCount = (el, size) => {
+    const range = document.createRange();
+    const tops = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      if (!/\S/.test(t.data)) continue;
+      range.selectNodeContents(t);
+      for (const r of range.getClientRects()) if (r.width > 0) tops.push(r.top);
+    }
+    tops.sort((a, b) => a - b);
+    return tops.filter((top, i) => i === 0 || top - tops[i - 1] >= size / 2).length;
+  };
   const firstChar = (el) => {
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     for (let t = walker.nextNode(); t; t = walker.nextNode()) {
@@ -95,7 +134,7 @@ async () => {
   const drawnBox = (el, cs) => {
     const bg = parseColour(cs.backgroundColor);
     if (bg && bg.a > 0) {
-      const under = backgroundOf(el.parentElement ?? el).bg;
+      const under = paint(el.parentElement ?? el).bg;
       if (hex(blend(bg, under)) !== hex(under)) return true;
     }
     if (['Top', 'Right', 'Bottom', 'Left'].every((s) => parseFloat(cs[`border${s}Width`]) > 0)) return true;
@@ -121,14 +160,7 @@ async () => {
       contentLeftPx: round(rect.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), 1),
       marginInlineStart: cs.marginInlineStart,
     };
-    const tops = [];
-    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
-      range.selectNodeContents(t);
-      for (const r of range.getClientRects()) tops.push(r.top);
-    }
-    const oneLine = tops.every((top) => Math.abs(top - tops[0]) < size / 2);
-    if (oneLine && drawnBox(el, cs)) {
+    if (lineCount(el, size) <= 1 && drawnBox(el, cs)) {
       const capHeight = canvas.measureText('H').actualBoundingBoxAscent;
       const baseline = glyphBox.top + m.fontBoundingBoxAscent;
       out.capCentreOffsetPx = round(baseline - capHeight / 2 - (rect.top + rect.height / 2), 1);
@@ -146,9 +178,16 @@ async () => {
   const loadedFamilies = new Set(loadedFaces.filter((f) => f.status === 'loaded').map((f) => f.family.toLowerCase()));
   const declaredFamilies = new Set(loadedFaces.map((f) => f.family.toLowerCase()));
   const GENERIC = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'emoji', 'math', 'fangsong', '-apple-system', 'blinkmacsystemfont']);
+  const SAMPLE = 'mmmmmmmmmmlli1WQ@#&gy';
+  const widthIn = (stack) => {
+    canvas.font = `72px ${stack}`;
+    return canvas.measureText(SAMPLE).width;
+  };
+  const installed = (fam) => ['monospace', 'serif'].some((g) => widthIn(`"${fam.replace(/["\\]/g, '')}", ${g}`) !== widthIn(g));
   const likelyRendered = (stack, cs) => {
     const families = stack.split(',').map((s) => s.trim().replace(/["']/g, ''));
     const failed = [];
+    const after = (how) => (failed.length ? `${how} (earlier web font ${failed.join(', ')} failed or pending)` : how);
     for (const fam of families) {
       const key = fam.toLowerCase();
       if (GENERIC.has(key)) return { family: fam, how: failed.length ? `web font ${failed.join(', ')} failed or pending, so the generic ${fam} is rendering` : 'generic or system keyword' };
@@ -162,16 +201,20 @@ async () => {
           const problems = [];
           if (!styleOk) problems.push(`no ${cs.fontStyle} face: synthesised italic`);
           if (want >= 600 && maxWeight < 600) problems.push(`weight ${want} requested but the heaviest loaded face is ${maxWeight}: synthesised bold`);
-          return { family: fam, how: problems.length ? `web font loaded, but ${problems.join('; ')}` : 'web font loaded' };
+          return { family: fam, how: after(problems.length ? `web font loaded, but ${problems.join('; ')}` : 'web font loaded') };
         }
         continue;
       }
-      if (document.fonts.check(`16px "${fam}"`)) return { family: fam, how: 'local/system font (not declared with @font-face)' };
+      if (installed(fam)) return { family: fam, how: after('local/system font (not declared with @font-face)') };
     }
     return { family: 'browser default', how: `nothing in the stack loaded (web fonts: ${families.filter((f) => declaredFamilies.has(f.toLowerCase())).join(', ') || 'none'} failed or pending), so the browser default face is rendering` };
   };
 
-  const sheets = { fontFaces: [], hasPrintMedia: false, pageRules: [], darkModeRules: false, inaccessible: [] };
+  const sheets = { fontFaces: [], hasPrintMedia: false, pageRules: [], darkModeRules: false, inaccessible: [], lightDark: false, schemes: [] };
+  const noteMedia = (text = '') => {
+    if (/\bprint\b/.test(text)) sheets.hasPrintMedia = true;
+    if (/prefers-color-scheme:\s*dark/.test(text)) sheets.darkModeRules = true;
+  };
   const walkRules = (rules, media = '') => {
     for (const r of rules) {
       if (r.type === CSSRule.FONT_FACE_RULE) {
@@ -187,35 +230,62 @@ async () => {
       } else if (r.type === CSSRule.PAGE_RULE) {
         sheets.pageRules.push(r.cssText.slice(0, 300));
       } else if (r.type === CSSRule.MEDIA_RULE) {
-        if (/print/.test(r.conditionText)) sheets.hasPrintMedia = true;
-        if (/prefers-color-scheme:\s*dark/.test(r.conditionText)) sheets.darkModeRules = true;
+        noteMedia(r.conditionText);
         walkRules(r.cssRules, r.conditionText);
-      } else if (r.cssRules) {
-        walkRules(r.cssRules, media);
+      } else if (r.type === CSSRule.IMPORT_RULE) {
+        noteMedia(r.media.mediaText);
+        try {
+          if (r.styleSheet) walkRules(r.styleSheet.cssRules, r.media.mediaText);
+        } catch {
+          sheets.inaccessible.push(r.styleSheet?.href || r.href);
+        }
+      } else {
+        if (r.style) {
+          if (r.style.cssText.includes('light-dark(')) sheets.lightDark = true;
+          const scheme = r.style.getPropertyValue('color-scheme');
+          if (scheme) sheets.schemes.push(scheme);
+        }
+        if (r.cssRules) walkRules(r.cssRules, media);
       }
     }
   };
   for (const sheet of document.styleSheets) {
-    if (sheet.media && /^print$/.test(sheet.media.mediaText)) sheets.hasPrintMedia = true;
+    noteMedia(sheet.media?.mediaText);
     try {
       walkRules(sheet.cssRules);
     } catch {
       sheets.inaccessible.push(sheet.href);
     }
   }
+  const pageSchemes = [document.querySelector('meta[name="color-scheme"]')?.content, getComputedStyle(document.documentElement).colorScheme].join(' ');
+  const allSchemes = [pageSchemes, document.body && getComputedStyle(document.body).colorScheme, ...sheets.schemes].join(' ');
+  if ((sheets.lightDark || document.querySelector('[style*="light-dark("]')) && /dark/.test(allSchemes)) sheets.darkModeRules = true;
+  if (/light/.test(pageSchemes) && /dark/.test(pageSchemes)) sheets.darkModeRules = true;
 
   const ROLE_SELECTOR = 'h1,h2,h3,h4,h5,h6,p,li,blockquote,figcaption,caption,small,a,button,label,th,td,dt,dd,code,pre,input,textarea,[class*="eyebrow"],[class*="kicker"],[class*="lede"],[class*="caption"],[class*="byline"],[class*="meta"]';
+  const textOwners = new Set();
+  const NOT_TEXT = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'TITLE']);
+  const textWalker = document.createTreeWalker(document.body ?? document.documentElement, NodeFilter.SHOW_TEXT);
+  for (let t = textWalker.nextNode(); t; t = textWalker.nextNode()) {
+    let n = t.parentElement;
+    if (!n || NOT_TEXT.has(n.tagName) || !/\S/.test(t.data)) continue;
+    while (n.parentElement && !n.matches(ROLE_SELECTOR) && ['inline', 'contents'].includes(getComputedStyle(n).display)) n = n.parentElement;
+    textOwners.add(n);
+  }
   const roles = new Map();
-  for (const el of document.querySelectorAll(ROLE_SELECTOR)) {
-    const ownText = [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+  for (const el of document.querySelectorAll('*')) {
+    const ownsText = textOwners.has(el);
+    if (!ownsText && !el.matches(ROLE_SELECTOR)) continue;
     const buttonLike = el.matches('button, [role="button"]') && !el.querySelector(ROLE_SELECTOR);
-    if (!ownText && !buttonLike && !['INPUT', 'TEXTAREA'].includes(el.tagName)) continue;
+    if (!ownsText && !buttonLike && !['INPUT', 'TEXTAREA'].includes(el.tagName)) continue;
+    const button = el.parentElement?.closest('button, [role="button"]');
+    if (button && !button.querySelector(ROLE_SELECTOR)) continue;
     const text = (el.innerText || el.value || '').trim().replace(/\s+/g, ' ');
     if (!text) continue;
-    const rect = el.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) continue;
     const cs = getComputedStyle(el);
     if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 1 || (rect.height === 0 && cs.overflowY !== 'visible')) continue;
     const tag = el.tagName.toLowerCase();
     const ownCls = typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
     let context = '';
@@ -237,7 +307,11 @@ async () => {
     const size = parseFloat(cs.fontSize);
     const lh = cs.lineHeight === 'normal' ? null : parseFloat(cs.lineHeight);
     const fg = parseColour(cs.color);
-    const { bg, imageBehind } = backgroundOf(el);
+    let painted = paint(el, fg ?? undefined);
+    const { opacity, imageBehind } = painted;
+    if (opacity === 0) painted = paint(el, fg ?? undefined, false);
+    const { bg } = painted;
+    const wcag = fg ? ratio(painted.fg, bg) : null;
     const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
     const isBlockText = ['p', 'li', 'blockquote', 'dd', 'figcaption'].includes(tag) || /lede/.test(cls);
     const entry = {
@@ -261,20 +335,21 @@ async () => {
       opticalSizing: cs.fontOpticalSizing,
       colour: fg ? hex(fg) : cs.color,
       background: hex(bg),
-      contrast: fg ? contrast(fg, bg) : null,
-      wcagAA: fg ? contrast(fg, bg) >= (size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700) ? 3 : 4.5) : null,
+      contrast: fg ? round(wcag, 2) : null,
+      wcagAA: fg ? wcag >= (size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700) ? 3 : 4.5) : null,
       apca: fg ? (() => {
-        const lc = apcaLc(fg, bg);
+        const lc = apcaLc(painted.fg, bg);
         const required = apcaRequired(size, Number(cs.fontWeight), isBlockText && text.length >= 120);
         return { lc, required, pass: Math.abs(lc) >= required };
       })() : null,
+      ...(opacity < 1 && { opacity: round(opacity, 3) }),
       textOverImage: imageBehind,
       margins: { top: cs.marginTop, bottom: cs.marginBottom },
       optical: optical(el, cs, rect, size),
     };
     if (isBlockText) {
       const width = rect.width - padX;
-      entry.measure = { widthPx: round(width, 0), approxCharsPerLine: Math.round(width / avgCharWidth(cs, text)), lines: lh ? Math.round((rect.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / lh) : null };
+      entry.measure = { widthPx: round(width, 0), approxCharsPerLine: Math.round(width / avgCharWidth(cs, text)), lines: lineCount(el, size) };
     }
     if (tag === 'a') {
       entry.link = {
