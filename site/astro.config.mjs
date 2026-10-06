@@ -1,5 +1,5 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://typography-check.view.fast',
+  site: 'https://typography-skills.view.fast',
 });

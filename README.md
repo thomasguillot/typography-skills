@@ -1,44 +1,58 @@
 # Typography skills
 
-Agent skills for checking typography.
+Two agent skills for typography, with rules from the [Typography Handbook](https://typographyhandbook.com) web and print editions. Site: [typography-skills.view.fast](https://typography-skills.view.fast).
 
-## typography-check
-
-Reviews the typography of a web page, a stylesheet, a print layout or a PDF, and reports ranked findings with a rule ID, location, measured value and fix for each.
-
-It works out the medium first (web, print, a web page's print stylesheet, a press PDF or a screen PDF) and loads only the rules that fit. Print and web disagree on a lot: 10pt justified text with absolute leading is right in a book and wrong on a web page.
+- **typography-check** reviews the typography of a web page, a stylesheet, a print layout or a PDF. It works out the medium first (web, print, a web page's print stylesheet, a press PDF or a screen PDF), loads only the rules that fit, measures what actually renders, and reports ranked findings, each with a rule ID, location, measured value and fix.
+- **typography-scale** builds a type scale for what you are making. It proposes ratios for the context, compares them side by side, then generates sizes from xs to 5xl, leading snapped to a baseline grid, tracking and heading roles, as CSS custom properties, JSON tokens, Tailwind theme values or a print spec.
 
 ```
 typography-check/
   SKILL.md                    workflow, medium detection, report format
   references/
     shared.md                 hierarchy, proximity, fonts, characters, micro-typography
-    web.md                    units, measure, loading, contrast (WCAG 2.x and APCA), dark mode, links
+    web.md                    units, measure, loading, contrast (WCAG 2 and APCA), dark mode, links, rhythm
     print.md                  page, grid, setting type, justification, print CSS, production
-    pdf.md                    press PDF (PDF/X, boxes, embedding) and screen PDF (tagging)
+    pdf.md                    press PDF (PDF/X, boxes, embedding, Type3) and screen PDF (tagging)
   scripts/
     extract-web-type.js       run in the page (chrome-devtools evaluate_script, Playwright) to dump rendered type per role
-    inspect-pdf.py            page boxes, fonts, colour, body size, leading, measure from a PDF (needs qpdf and Ghostscript)
-    contrast.mjs              WCAG 2.x ratio and APCA Lc for a text/background pair
+    inspect-pdf.py            page boxes, fonts, color, body size, leading, measure from a PDF (needs qpdf and Ghostscript)
+    contrast.mjs              WCAG 2 ratio and APCA Lc for a text/background pair
+
+typography-scale/
+  SKILL.md                    context questions, ratio guidance, output formats
+  scripts/
+    scale.mjs                 sizes, fluid clamp(), grid-snapped leading, tracking and roles as a table, CSS, JSON, Tailwind or a print spec
 ```
 
-### Install
+## Install
 
-Symlink the skill into your agent's skills directory:
+Clone the repository, then link both skills into your agent's skills directory:
 
 ```sh
-ln -s "$PWD/typography-check" ~/.claude/skills/typography-check
+git clone https://github.com/thomasguillot/typography-skills.git
+ln -s "$PWD/typography-skills/typography-check" "$PWD/typography-skills/typography-scale" ~/.claude/skills/
 ```
 
 The PDF inspector needs `qpdf` and Ghostscript (`brew install qpdf ghostscript`). The other scripts need only Node.
 
-### Usage
+## Usage
 
-Ask your agent to "check the typography" of a URL, a folder of HTML/CSS, a print stylesheet or a PDF.
+Ask your agent:
+
+- "Check the typography of https://example.com", or point it at a folder of CSS, a print stylesheet or a PDF.
+- "Make a type scale for a docs site with an 18px body", or for a book, a dashboard or a landing page.
+
+The scale script also runs on its own:
+
+```sh
+node typography-scale/scripts/scale.mjs --base 18 --compare major-third,perfect-fourth,golden
+node typography-scale/scripts/scale.mjs --base 18 --ratio perfect-fourth --grid 27 --format css
+node typography-scale/scripts/scale.mjs --medium print --base 10.5 --format spec
+```
 
 ## Site
 
-`site/` is the marketing page at [typography-check.view.fast](https://typography-check.view.fast), built with Astro:
+`site/` is the page at [typography-skills.view.fast](https://typography-skills.view.fast), built with Astro and set on a 27px baseline grid:
 
 ```sh
 cd site
