@@ -60,6 +60,16 @@ npm install
 npm run build
 ```
 
+The checks in `site/scripts/` drive the installed Chrome through `playwright-core` (set `CHROME_PATH` to use another Chromium). They serve `site/dist` by default, or take `--url`, and run at 1280, 1024, 768 and 375px unless `--widths` says otherwise:
+
+```sh
+npm run check                 # build, then the baseline and overflow checks; exits non-zero on a failure
+npm run check:baseline -- -v  # every line of text on the 27px grid, listing the deliberate optical exceptions
+npm run check:overflow        # sideways scroll, elements past the viewport, text spilling out of its box
+npm run check:type            # typography-check's extract-web-type.js against the page, as JSON
+npm run screenshots -- --grid # one PNG per section into site/screenshots/, with the grid overlays on
+```
+
 ## Credits
 
 - Rules paraphrased from [Typography Handbook](https://typographyhandbook.com) (web and [print](https://typographyhandbook.com/print/) editions), based on Kenneth Wang's original [Typography Handbook](https://github.com/KennethWangDotDev/TypographyHandbook), MIT License.
