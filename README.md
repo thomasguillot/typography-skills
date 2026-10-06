@@ -9,7 +9,7 @@ Two agent skills for typography, with rules from the [Typography Handbook](https
 typography-check/
   SKILL.md                    workflow, medium detection, report format
   references/
-    shared.md                 hierarchy, proximity, fonts, characters, micro-typography
+    shared.md                 hierarchy, proximity, fonts, characters, micro-typography, optical alignment
     web.md                    units, measure, loading, contrast (WCAG 2 and APCA), dark mode, links, rhythm
     print.md                  page, grid, setting type, justification, print CSS, production
     pdf.md                    press PDF (PDF/X, boxes, embedding, Type3) and screen PDF (tagging)

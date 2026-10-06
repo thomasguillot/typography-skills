@@ -27,11 +27,18 @@ Write the medium and the evidence for it on the first line of the report.
 | Input | How to get the facts |
 |---|---|
 | Code only | Read the CSS, markup and tokens. Run `node scripts/contrast.mjs TEXT BG --size PX --weight N [--body]` for each text/background pair you report on. Pass `--body` only for paragraphs of running text, not for bylines, captions, labels or buttons. Label the review **static**, because the rendered font is unverified. |
-| Live page or local build | Paste `scripts/extract-web-type.js` as the `function` of `chrome-devtools` `evaluate_script`. With Playwright, use `page.evaluate(\`(${source})()\`)`, setting `colorScheme` on the context. Run it at 1280px and 375px wide. If `darkModeRules` is true, run it again with `emulate colorScheme: dark` and also `light`. It returns the rendered font, sizes, leading ratios, characters per line (`approxCharsPerLine` is what the container holds; `lines` says whether the text actually wraps, so judge measure only where `lines` > 1), WCAG and APCA contrast, `@font-face` rules, preloads and print rules for each text role. |
+| Live page or local build | Paste `scripts/extract-web-type.js` as the `function` of `chrome-devtools` `evaluate_script`. With Playwright, use `page.evaluate(\`(${source})()\`)`, setting `colorScheme` on the context. Run it at 1280px and 375px wide. If `darkModeRules` is true, run it again with `emulate colorScheme: dark` and also `light`. It returns the rendered font, sizes, leading ratios, characters per line (`approxCharsPerLine` is what the container holds; `lines` says whether the text actually wraps, so judge measure only where `lines` > 1), WCAG and APCA contrast, where the first glyph's ink starts and how a label sits in its box (`optical`), `@font-face` rules, preloads and print rules for each text role. |
 | PDF | Run `python3 -I scripts/inspect-pdf.py FILE.pdf`. For a visual pass, render pages with `gs -q -dNOPAUSE -dBATCH -sDEVICE=png16m -r100 -sOutputFile=page-%d.png FILE.pdf` and read the PNGs. |
 | Print stylesheet or HTML-to-PDF | Print it to PDF (headless Chrome `--print-to-pdf`, Paged.js, WeasyPrint) and inspect the PDF. That is the only way to see substituted fonts and real pagination. |
 | Screenshot or image | Visual review only. Mark every size, leading or measure as an estimate. |
 | Figma | Read the text styles and variables through the Figma MCP if it is connected (load its skill first). Otherwise ask for an export. |
+
+Then look. Numbers find candidates; the eye decides alignment. An optical correction (display type pulled left of the column edge, a label set off its box's geometric centre, a round icon drawn larger) departs from the measurement on purpose, and it is right when the result looks aligned.
+
+- Don't report a measured offset as a fault when it is an optical correction. Signals: a negative margin or indent in `em` on display type, `text-box` trimming, asymmetric padding repeated across a component, a token or comment naming the nudge. Name it under "Already right".
+- Report an offset that looks accidental with its measured value and what it looks like on the render.
+- Optical judgement overrides geometry (positions, alignment, relative sizes), never accessibility thresholds. Contrast, minimum sizes and zoom stay numeric.
+- The optical rules in `shared.md` need a render. In a static review, say they were not checked.
 
 ## 3. Load the rules
 
@@ -59,7 +66,7 @@ Basis: <measured with extract-web-type / inspect-pdf | static review, rendered f
 3. … (numbering continues from P2 and stops at 10)
 Also worth a look: `rule-id` (location), `rule-id` (location), …
 
-Already right: <one line naming what is correct, so nobody "fixes" it>
+Already right: <one line naming what is correct, deliberate optical corrections included, so nobody "fixes" it>
 ```
 
 - Every finding has a rule ID, a location, the measured or declared value, and a concrete fix (CSS, a setting, or a corrected character).

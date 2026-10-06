@@ -49,8 +49,8 @@ const habits = [
 ];
 
 const families = [
-  { count: 24, name: 'Shared', scope: 'Hierarchy, proximity, paragraphs, true italics and bolds, quotes and dashes, tracking, figures.' },
-  { count: 33, name: 'Web', scope: 'Units, leading, measure, font loading, rendered fonts, WCAG and APCA contrast, dark mode, links.' },
+  { count: 27, name: 'Shared', scope: 'Hierarchy, proximity, paragraphs, true italics and bolds, quotes and dashes, tracking, figures, optical alignment.' },
+  { count: 34, name: 'Web', scope: 'Units, leading, measure, font loading, rendered fonts, WCAG and APCA contrast, dark mode, links.' },
   { count: 37, name: 'Print', scope: 'Page format and margins, baseline grid, size and leading, justification, print stylesheets, ink and bleed.' },
   { count: 8, name: 'PDF', scope: 'PDF/X, trim and bleed boxes, font embedding, tagging for screen readers.' },
 ];
@@ -59,7 +59,7 @@ const tools = [
   {
     file: 'extract-web-type.js',
     reads: 'Runs inside the page.',
-    body: 'Returns the face that actually rendered, sizes, leading ratios, characters per line, and WCAG and APCA contrast for every text role, in every color scheme.',
+    body: 'Returns the face that actually rendered, sizes, leading ratios, characters per line, WCAG and APCA contrast, and where the ink sits for every text role, in every color scheme.',
   },
   {
     file: 'inspect-pdf.py',
@@ -158,7 +158,7 @@ const tools = [
     </section>
 
     <section class="section page" aria-labelledby="checks">
-      <SectionHead number="02" id="checks" title="102 rules, in four families">
+      <SectionHead number="02" id="checks" title="106 rules, in four families">
         <p>Each rule has an ID, a threshold, a fix and a severity, paraphrased from the Typography Handbook’s web and print editions.</p>
       </SectionHead>
 

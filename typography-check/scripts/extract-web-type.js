@@ -84,6 +84,58 @@ async () => {
     return canvas.measureText(sample).width / sample.length;
   };
 
+  const firstChar = (el) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      const i = t.data.search(/\S/);
+      if (i >= 0) return { node: t, i };
+    }
+    return null;
+  };
+  const drawnBox = (el, cs) => {
+    const bg = parseColour(cs.backgroundColor);
+    if (bg && bg.a > 0) {
+      const under = backgroundOf(el.parentElement ?? el).bg;
+      if (hex(blend(bg, under)) !== hex(under)) return true;
+    }
+    if (['Top', 'Right', 'Bottom', 'Left'].every((s) => parseFloat(cs[`border${s}Width`]) > 0)) return true;
+    return [...cs.boxShadow.matchAll(/(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px (-?[\d.]+)px/g)].some(([, x, y, blur, spread]) => Number(blur) > 0 || (Number(x) === 0 && Number(y) === 0 && Number(spread) > 0));
+  };
+  const optical = (el, cs, rect, size) => {
+    const first = firstChar(el);
+    if (!first) return null;
+    const range = document.createRange();
+    range.setStart(first.node, first.i);
+    range.setEnd(first.node, first.i + 1);
+    const glyphBox = range.getBoundingClientRect();
+    const tcs = getComputedStyle(first.node.parentElement);
+    canvas.font = `${tcs.fontStyle} ${tcs.fontWeight} ${tcs.fontSize} ${tcs.fontFamily}`;
+    const glyph = first.node.data[first.i];
+    const m = canvas.measureText(glyph);
+    const inset = -m.actualBoundingBoxLeft;
+    const out = {
+      glyph,
+      inkInsetPx: round(inset, 1),
+      inkInsetEm: round(inset / size, 3),
+      inkLeftPx: round(glyphBox.left + inset, 1),
+      contentLeftPx: round(rect.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), 1),
+      marginInlineStart: cs.marginInlineStart,
+    };
+    const tops = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      range.selectNodeContents(t);
+      for (const r of range.getClientRects()) tops.push(r.top);
+    }
+    const oneLine = tops.every((top) => Math.abs(top - tops[0]) < size / 2);
+    if (oneLine && drawnBox(el, cs)) {
+      const capHeight = canvas.measureText('H').actualBoundingBoxAscent;
+      const baseline = glyphBox.top + m.fontBoundingBoxAscent;
+      out.capCentreOffsetPx = round(baseline - capHeight / 2 - (rect.top + rect.height / 2), 1);
+    }
+    return out;
+  };
+
   const loadedFaces = [...document.fonts].map((f) => ({
     family: f.family.replace(/["']/g, ''),
     weight: f.weight,
@@ -156,7 +208,8 @@ async () => {
   const roles = new Map();
   for (const el of document.querySelectorAll(ROLE_SELECTOR)) {
     const ownText = [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
-    if (!ownText && !['INPUT', 'TEXTAREA'].includes(el.tagName)) continue;
+    const buttonLike = el.matches('button, [role="button"]') && !el.querySelector(ROLE_SELECTOR);
+    if (!ownText && !buttonLike && !['INPUT', 'TEXTAREA'].includes(el.tagName)) continue;
     const text = (el.innerText || el.value || '').trim().replace(/\s+/g, ' ');
     if (!text) continue;
     const rect = el.getBoundingClientRect();
@@ -217,6 +270,7 @@ async () => {
       })() : null,
       textOverImage: imageBehind,
       margins: { top: cs.marginTop, bottom: cs.marginBottom },
+      optical: optical(el, cs, rect, size),
     };
     if (isBlockText) {
       const width = rect.width - padX;
