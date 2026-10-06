@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Usage: node contrast.mjs TEXT BACKGROUND [--size PX] [--weight N] [--body]
-// Colours: #rgb, #rgba, #rrggbb, #rrggbbaa, rgb()/rgba() with numbers or percentages, basic named colours.
+// Colors: #rgb, #rgba, #rrggbb, #rrggbbaa, rgb()/rgba() with numbers or percentages, basic named colors.
 // Prints WCAG 2.x ratio and APCA Lc with thresholds.
 
 const args = process.argv.slice(2);
@@ -8,13 +8,13 @@ const flag = (name, fallback) => {
   const i = args.indexOf(name);
   return i === -1 ? fallback : args[i + 1];
 };
-const USAGE = 'Usage: node contrast.mjs TEXT BACKGROUND [--size PX] [--weight N] [--body]\nColours: #rgb, #rgba, #rrggbb, #rrggbbaa, rgb(0 0 0 / 50%), rgba(0, 0, 0, 0.5), or a basic name such as black.';
+const USAGE = 'Usage: node contrast.mjs TEXT BACKGROUND [--size PX] [--weight N] [--body]\nColors: #rgb, #rgba, #rrggbb, #rrggbbaa, rgb(0 0 0 / 50%), rgba(0, 0, 0, 0.5), or a basic name such as black.';
 const fail = (msg) => {
   console.error(`${msg}\n${USAGE}`);
   process.exit(1);
 };
 const [fgArg, bgArg] = args.filter((a, i) => !a.startsWith('--') && !['--size', '--weight'].includes(args[i - 1]));
-if (!fgArg || !bgArg) fail('Need a text and a background colour.');
+if (!fgArg || !bgArg) fail('Need a text and a background color.');
 const size = Number(flag('--size', 16));
 const weight = Number(flag('--weight', 400));
 const isBody = args.includes('--body');
@@ -41,7 +41,7 @@ const parse = (s) => {
     const a = p[3] === undefined ? 1 : Math.min(1, Math.max(0, num(p[3], 1)));
     if ([r, g, b, a].every(Number.isFinite)) return { r, g, b, a };
   }
-  fail(`Unrecognised colour: ${s}`);
+  fail(`Unrecognized color: ${s}`);
 };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 const blend = (t, u) => ({ r: t.r * t.a + u.r * (1 - t.a), g: t.g * t.a + u.g * (1 - t.a), b: t.b * t.a + u.b * (1 - t.a), a: 1 });

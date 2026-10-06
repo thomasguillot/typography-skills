@@ -7,7 +7,7 @@ Applies to HTML/CSS/JSX, design tokens and live pages. Not to `@media print` blo
 | ID | Check | Fix | Sev |
 |---|---|---|---|
 | `web/zoom` | Viewport meta does not set `user-scalable=no` or `maximum-scale=1`. | `<meta name="viewport" content="width=device-width, initial-scale=1">`. | P0 |
-| `web/relative-units` | `font-size` in `rem`/`em` (or `%` on `html`), not `px`; media queries in `em`. Root stays near `font-size: 100%` so the reader's browser setting is honoured. | Convert px to rem (px ÷ 16). | P1 |
+| `web/relative-units` | `font-size` in `rem`/`em` (or `%` on `html`), not `px`; media queries in `em`. Root stays near `font-size: 100%` so the reader's browser setting is honored. | Convert px to rem (px ÷ 16). | P1 |
 | `web/body-size` | Body copy renders at ≥ 16px (1rem) at default zoom; 17–20px suits long reading. UI labels and captions may go smaller, never below ~12px. | Raise the body size. | P1 |
 | `web/fluid-type` | Fluid sizes use `clamp(min, preferred, max)` with a **rem** minimum (never a viewport-only minimum) and a preferred value with a rem term (`3vw + 1rem`). Max ≤ ~2.5× min. Body text is fixed or gently fluid at most (1rem → 1.25rem). App UI and dense dashboards use a fixed rem scale. | Rewrite as `clamp(2rem, 5vw + 1rem, 4rem)`; generate scales with Utopia. | P2 |
 
@@ -26,7 +26,7 @@ Applies to HTML/CSS/JSX, design tokens and live pages. Not to `@media print` blo
 | ID | Check | Fix | Sev |
 |---|---|---|---|
 | `web/measure` | Body text runs 45–75 characters per line (66 ideal); multi-column text 40–50; captions and UI text 35–50. Judge by measured characters (`approxCharsPerLine`), not by the `ch` value: `1ch` is the width of the zero, wider than the average letter in most proportional faces, so `65ch` often holds 75–90 characters. | Set the column width from the measured average character width (often about 30–34em for body text), with `padding-inline`. On narrow viewports let the measure shrink; never force horizontal scrolling. | P1 over ~90, P2 otherwise |
-| `web/ragged-right` | Body text is ragged right. Browser justification without good hyphenation opens rivers; centred text is for short lines only (headings, a one- or two-line lede). | `text-align: start`. If justifying, require `hyphens: auto` with a correct `lang`, and only on generous measures. | P2 |
+| `web/ragged-right` | Body text is ragged right. Browser justification without good hyphenation opens rivers; centered text is for short lines only (headings, a one- or two-line lede). | `text-align: start`. If justifying, require `hyphens: auto` with a correct `lang`, and only on generous measures. | P2 |
 
 ## Web fonts and loading
 
@@ -51,15 +51,15 @@ Applies to HTML/CSS/JSX, design tokens and live pages. Not to `@media print` blo
 | `web/hanging-punctuation` | Opening quotes on blockquotes, pull quotes and display headings hang outside the text edge, so the letters align with the text around them. At body size the indent is slight; at display sizes it is obvious. | `hanging-punctuation: first` (Safari; check support elsewhere), plus a negative `text-indent` equal to the quote's width (about `-0.4em`, measure the face) on elements that start with a quote. | P2 at display sizes, P3 otherwise |
 | `web/text-wrap` | `text-wrap: balance` on headings, captions and pull quotes only (it stops working past ~6 lines in Chromium, ~10 in Firefox, and is costly). `text-wrap: pretty` on paragraphs and list items. Balance on a paragraph is a misuse. | Move `balance` to headings; use `pretty` for body. | P3 |
 
-## Colour and contrast
+## Color and contrast
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `web/contrast` | WCAG 2.x AA: 4.5:1 for normal text, 3:1 for large text (≥ 24px, or ≥ 18.66px bold). AAA: 7:1 / 4.5:1. Check every text role, in every colour scheme the site supports, and on buttons. | Darken or lighten until it passes; re-check the other scheme. | P1 |
+| `web/contrast` | WCAG 2.x AA: 4.5:1 for normal text, 3:1 for large text (≥ 24px, or ≥ 18.66px bold). AAA: 7:1 / 4.5:1. Check every text role, in every color scheme the site supports, and on buttons. | Darken or lighten until it passes; re-check the other scheme. | P1 |
 | `web/text-on-image` | Text over images has a scrim, overlay or shadow guaranteeing contrast at every crop. | Add a scrim. | P1 |
-| `web/not-pure-black` | Long-form body text is a very dark grey (#161616–#333) rather than #000 on #fff. Comfort only, not a contrast failure. | Use a near-black token. | P3 |
-| `web/colour-tokens` | Text colours come from a small set of named custom properties, not scattered literals. | Define tokens on `:root`. | P3 |
-| `web/not-colour-alone` | Meaning (links, errors, states) is not carried by colour alone. | Add underline, icon or text. | P1 |
+| `web/not-pure-black` | Long-form body text is a very dark gray (#161616–#333) rather than #000 on #fff. Comfort only, not a contrast failure. | Use a near-black token. | P3 |
+| `web/color-tokens` | Text colors come from a small set of named custom properties, not scattered literals. | Define tokens on `:root`. | P3 |
+| `web/not-color-alone` | Meaning (links, errors, states) is not carried by color alone. | Add underline, icon or text. | P1 |
 | `web/apca` | APCA (Advanced Perceptual Contrast Algorithm, proposed for WCAG 3) agrees with WCAG 2.x. APCA accounts for size, weight and polarity, so it catches thin or small text and light-on-dark text that WCAG 2.x passes. See **APCA** below. | Raise contrast, size or weight until both pass. | P2 |
 
 ### APCA
@@ -82,13 +82,13 @@ How to report the two together:
 - **WCAG 2.x is the compliance check.** A WCAG AA failure is P1 (`web/contrast`) even when APCA passes, because WCAG 2.x is what audits and the law measure today. Say that APCA disagrees, since it often points to the better fix.
 - **APCA failing while WCAG passes is P2 (`web/apca`).** This is common for light weights, small sizes and dark mode, where WCAG 2.x overstates light-on-dark contrast. Name both numbers: "4.6:1 passes WCAG AA, but Lc 52 is below the 75 APCA wants for 18px body text".
 - **Use APCA to choose the fix.** It tells you whether more size, more weight or more contrast fixes the problem, because size and weight change the threshold.
-- **Static review**: compute both by hand from the colours (WCAG relative luminance; APCA 0.0.98G constants as in `scripts/extract-web-type.js`), or say that you have not computed them.
+- **Static review**: compute both by hand from the colors (WCAG relative luminance; APCA 0.0.98G constants as in `scripts/extract-web-type.js`), or say that you have not computed them.
 
 ## Dark mode
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `web/dark-halation` | Dark mode avoids pure #fff on pure #000 (halation). Background around #121212–#1a1a1a, text #e0e0e0–#f0f0f0, which gives about 13–16:1. | Soften both ends via the colour tokens. | P2 |
+| `web/dark-halation` | Dark mode avoids pure #fff on pure #000 (halation). Background around #121212–#1a1a1a, text #e0e0e0–#f0f0f0, which gives about 13–16:1. | Soften both ends via the color tokens. | P2 |
 | `web/dark-weight` | Light-on-dark text looks **thinner**, so dark mode keeps or slightly **increases** weight: +20 to +50 on a variable `wght` axis, or one step up. Never decrease it. Most visible at small sizes and light weights (300–350). | Add a `prefers-color-scheme: dark` weight bump. | P2 |
 | `web/dark-leading` | Dark mode may want slightly more line-height (+0.05–0.1). Minor. | – | P3 |
 
@@ -96,4 +96,4 @@ How to report the two together:
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `web/link-underline` | Body-copy links have an underline tuned to the face: `text-decoration-thickness` in `em` (~0.07–0.08em), `text-underline-offset` ~0.12–0.16em, `text-decoration-skip-ink: auto`. A muted underline colour with a full-strength hover is a good editorial default. These values are a recommendation, not a defect. | Add the three properties. | P3 |
+| `web/link-underline` | Body-copy links have an underline tuned to the face: `text-decoration-thickness` in `em` (~0.07–0.08em), `text-underline-offset` ~0.12–0.16em, `text-decoration-skip-ink: auto`. A muted underline color with a full-strength hover is a good editorial default. These values are a recommendation, not a defect. | Add the three properties. | P3 |

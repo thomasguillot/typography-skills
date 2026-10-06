@@ -33,11 +33,11 @@ Write the medium and the evidence for it on the first line of the report.
 | Screenshot or image | Visual review only. Mark every size, leading or measure as an estimate. |
 | Figma | Read the text styles and variables through the Figma MCP if it is connected (load its skill first). Otherwise ask for an export. |
 
-Then look. Numbers find candidates; the eye decides alignment. An optical correction (display type pulled left of the column edge, a label set off its box's geometric centre, a round icon drawn larger) departs from the measurement on purpose, and it is right when the result looks aligned.
+Then look. Numbers find candidates; the eye decides alignment. An optical correction (display type pulled left of the column edge, a label set off its box's geometric center, a round icon drawn larger) departs from the measurement on purpose, and it is right when the result looks aligned.
 
 - Don't report a measured offset as a fault when it is an optical correction. Signals: a negative margin or indent in `em` on display type, `text-box` trimming, asymmetric padding repeated across a component, a token or comment naming the nudge. Name it under "Already right".
 - Report an offset that looks accidental with its measured value and what it looks like on the render.
-- Optical judgement overrides geometry (positions, alignment, relative sizes), never accessibility thresholds. Contrast, minimum sizes and zoom stay numeric.
+- Optical judgment overrides geometry (positions, alignment, relative sizes), never accessibility thresholds. Contrast, minimum sizes and zoom stay numeric.
 - The optical rules in `shared.md` need a render. In a static review, say they were not checked.
 
 ## 3. Load the rules
@@ -74,7 +74,7 @@ Already right: <one line naming what is correct, deliberate optical corrections 
 - Number the written-out P2 and P3 findings 1 to 10 across both headings, choosing the most visible ones. Finding 11 and beyond go on the single "Also worth a look" line as a rule ID and location only.
 - Each finding takes the severity given in its rule table. Don't move one down to tidy the list.
 - Leave out empty severity headings.
-- The check covers typography only: type, fonts, spacing of text, colour of text, page and production as they affect type. Anything else gets at most one closing line, "Outside typography: …", or nothing.
+- The check covers typography only: type, fonts, spacing of text, color of text, page and production as they affect type. Anything else gets at most one closing line, "Outside typography: …", or nothing.
 
 ## Gotchas
 
@@ -82,7 +82,7 @@ Already right: <one line naming what is correct, deliberate optical corrections 
 - **Check the font before flagging an OpenType feature.** A `font-variant-*` or `font-feature-settings` fix does nothing if the face lacks the feature.
 - **Declared is not rendered.** A web font that 404s, or a print font that isn't installed, silently becomes the browser default or Times. Check `roles[].font.likely` or `structure.fonts`, and report a substitution as P0.
 - **Dark-mode weight goes up, not down.** Light-on-dark text looks thinner, so dark mode needs `web/dark-weight`.
-- **Check every colour scheme and every button.** A grey that passes on white can fail on the dark background, and the reverse.
+- **Check every color scheme and every button.** A gray that passes on white can fail on the dark background, and the reverse.
 - **WCAG 2.x is the compliance check; APCA is a second opinion.** Report both numbers when they disagree, following `web.md`.
 - **Use fewer thresholds and more evidence.** "116 characters per line at 22px (`web/measure`, 45–75)" is a finding. "The lede feels long" is not.
 - **An audit is not a redesign.** Propose fixes inside the existing type system. A new pairing or scale only if the user asks.

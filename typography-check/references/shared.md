@@ -8,9 +8,9 @@ Severity: **P0** broken or unreadable, **P1** readability or accessibility failu
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `shared/hierarchy-levels` | Each level (title, heading, subhead, body, caption) is distinguishable at a glance by size, weight, typeface, colour or position. Two levels that differ by less than ~1.15× in size *and* nothing else read as one. | Separate adjacent levels by a step on one scale, or by weight or face, not by 1–2px/pt. | P1 |
+| `shared/hierarchy-levels` | Each level (title, heading, subhead, body, caption) is distinguishable at a glance by size, weight, typeface, color or position. Two levels that differ by less than ~1.15× in size *and* nothing else read as one. | Separate adjacent levels by a step on one scale, or by weight or face, not by 1–2px/pt. | P1 |
 | `shared/scale` | Sizes come from one ratio (modular scale) instead of a scatter of near-identical values. Count distinct sizes: more than ~6–7 for a single document is a smell. | Pick a base and one ratio (1.2, 1.25, 1.333, 1.5) and snap sizes to it. | P2 |
-| `shared/colour-sparingly` | Colour used for hierarchy or emphasis is rare enough to stay distinct. | One accent, used sparingly. | P3 |
+| `shared/color-sparingly` | Color used for hierarchy or emphasis is rare enough to stay distinct. | One accent, used sparingly. | P3 |
 
 ## Gestalt: proximity and similarity
 
@@ -59,16 +59,16 @@ Severity: **P0** broken or unreadable, **P1** readability or accessibility failu
 
 ## Optical alignment
 
-Geometry puts edges and centres where the numbers say; these rules put them where the eye sees them. Check them on a render (a screenshot, the live page or rendered PDF pages), never from code alone. `extract-web-type.js` reports `optical` per role: `inkLeftPx` and `inkInsetEm` for where the first glyph's ink starts, and `capCentreOffsetPx` for single-line text in a drawn box.
+Geometry puts edges and centers where the numbers say; these rules put them where the eye sees them. Check them on a render (a screenshot, the live page or rendered PDF pages), never from code alone. `extract-web-type.js` reports `optical` per role: `inkLeftPx` and `inkInsetEm` for where the first glyph's ink starts, and `capCenterOffsetPx` for single-line text in a drawn box.
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
 | `shared/optical-margin` | Display type that shares an edge with text aligns by its ink, not its box. Side bearings grow with size, so a heading or numeral at 3× the body size looks indented next to the text under it, and round or diagonal first letters (O, C, G, A, V, W, T) more so. Compare `optical.inkLeftPx` of the display role with the text it lines up with: more than about 2px apart on screen, or 0.5pt in print, is visible. Round and diagonal letters may sit a hair past the edge, as they overshoot the baseline. | Web: pull the display role back by its first glyph's inset, `margin-inline-start: -<inkInsetEm>em`; use the exact glyph for fixed strings (numerals, wordmarks) and a typical value for headings whose first letter varies. Print: InDesign Optical Margin Alignment (Story panel, set to the body size), or a negative indent on display lines. | P2 |
-| `shared/optical-centre` | Text in a drawn box (button, badge, tag, tab, pill) looks vertically centred. Centre on the cap height (x-height for all-lowercase labels), not the line box: font metrics leave caps above or below the line box centre by a different amount in every face. `optical.capCentreOffsetPx` is negative when the caps sit high; more than about 1px off in a box under 48px tall is visible. An icon beside a label centres on the same cap-height middle. | Web: `text-box: trim-both cap alphabetic` with equal block padding where supported; otherwise offset the padding by the measured amount. Print: first baseline offset at cap height, with equal top and bottom insets. | P2 |
-| `shared/overshoot` | Round and pointed marks set with type (bullets, circular icons, play and arrow triangles) look the same size and position as flat ones. A circle drawn at a square's size looks smaller; a triangle centred on its bounding box looks shifted toward its flat side. There is no measured threshold: judge on the render. | Draw or scale round shapes a few percent larger than flat ones; nudge triangles toward their point until they look centred, often by about a tenth of their width. | P3 |
+| `shared/optical-center` | Text in a drawn box (button, badge, tag, tab, pill) looks vertically centered. Center on the cap height (x-height for all-lowercase labels), not the line box: font metrics leave caps above or below the line box center by a different amount in every face. `optical.capCenterOffsetPx` is negative when the caps sit high; more than about 1px off in a box under 48px tall is visible. An icon beside a label centers on the same cap-height middle. | Web: `text-box: trim-both cap alphabetic` with equal block padding where supported; otherwise offset the padding by the measured amount. Print: first baseline offset at cap height, with equal top and bottom insets. | P2 |
+| `shared/overshoot` | Round and pointed marks set with type (bullets, circular icons, play and arrow triangles) look the same size and position as flat ones. A circle drawn at a square's size looks smaller; a triangle centered on its bounding box looks shifted toward its flat side. There is no measured threshold: judge on the render. | Draw or scale round shapes a few percent larger than flat ones; nudge triangles toward their point until they look centered, often by about a tenth of their width. | P3 |
 
 ## Underlining
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `shared/no-decorative-underline` | Underline is used only for links on screen, and not at all for emphasis in print. | Emphasise with italic or weight instead. | P2 |
+| `shared/no-decorative-underline` | Underline is used only for links on screen, and not at all for emphasis in print. | Emphasize with italic or weight instead. | P2 |
