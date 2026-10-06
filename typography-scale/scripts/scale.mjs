@@ -27,11 +27,15 @@ const USAGE = `Usage: node scale.mjs [options]
   --ratio-down R           ratio for steps below body (default 1.125 web, 1.1 print)
   --compare r1,r2,r3       show several ratios side by side and exit
   --viewports 375,1280     narrowest and widest viewport for fluid sizes
-  --down N --up N          steps below and above body (default 2 and 6 web, 2 and 4 print)
-  --grid N|auto            baseline grid unit; leading snaps to it (print default: body leading)
+  --down N --up N          steps below and above body (default 2 and 6 web, 2 and 4 print;
+                           at most ${NAMES_DOWN.length} down and ${NAMES_UP.length} up)
+  --grid N|auto            baseline grid unit; leading snaps to the nearest line, at least 1.05x
+                           the size, half a line for loose headings (print default: body leading)
   --k N                    body face (ascent - descent) / 2 per em; adds baseline snapping CSS
   --prefix NAME            custom property prefix (default text)
-  --format F               table, css, json, tailwind or spec (default table)`;
+  --format F               table, css, json, tailwind or spec (default table); json is plain
+                           JSON with CSS values per step, not W3C design tokens (DTCG)
+Checks print to stderr: a warning breaks a typography-check rule, a note is informational.`;
 if (argv.includes('--help') || argv.includes('-h')) {
   console.log(USAGE);
   process.exit(0);
@@ -48,8 +52,14 @@ const opt = (name, fallback) => {
 };
 const ratioOf = (v) => (v in RATIOS ? RATIOS[v] : Number(v));
 
+const fail = (msg) => {
+  console.error(msg);
+  process.exit(1);
+};
 const medium = opt('medium', 'web');
+if (medium !== 'web' && medium !== 'print') fail(`--medium must be web or print, not ${medium}.`);
 const print = medium === 'print';
+if (print && (argv.includes('--base-max') || argv.includes('--ratio-max'))) fail('--base-max and --ratio-max are for fluid web scales; print sizes are fixed. Drop them or use --medium web.');
 const base = Number(opt('base', print ? 10.5 : 18));
 const baseMax = Number(opt('base-max', base));
 const ratio = ratioOf(opt('ratio', print ? 'minor-third' : 'major-third'));
@@ -64,17 +74,21 @@ const prefix = opt('prefix', 'text');
 const format = opt('format', 'table');
 const unit = print ? 'pt' : 'px';
 
-if (!(base > 0) || !(ratio > 1) || !(ratioMax > 1)) {
-  console.error('Need --base > 0 and ratios > 1. Named ratios: ' + Object.keys(RATIOS).join(', '));
-  process.exit(1);
-}
+const ratioNames = 'Named ratios: ' + Object.keys(RATIOS).join(', ');
+if (!(base > 0) || !(baseMax > 0) || !(ratio > 1) || !(ratioMax > 1)) fail(`Need --base and --base-max > 0 and ratios > 1. ${ratioNames}`);
+if (!(ratioDown > 1)) fail(`Need --ratio-down > 1: steps below body divide by it. ${ratioNames}`);
+if (!Number.isInteger(down) || down < 0 || down > NAMES_DOWN.length) fail(`--down must be a whole number from 0 to ${NAMES_DOWN.length} (${NAMES_DOWN.join(', ')}).`);
+if (!Number.isInteger(up) || up < 1 || up > NAMES_UP.length) fail(`--up must be a whole number from 1 to ${NAMES_UP.length} (${NAMES_UP.join(', ')}).`);
+if (gridArg !== null && gridArg !== 'auto' && !(Number(gridArg) > 0)) fail('--grid must be a number above 0 or auto.');
+if (k !== null && !Number.isFinite(Number(k))) fail('--k must be a number.');
+if (!print && (baseMax !== base || ratioMax !== ratio) && !(vwMin > 0 && vwMax > vwMin)) fail('--viewports needs two widths, narrowest first, e.g. 375,1280.');
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const r4 = (n) => Math.round(n * 10000) / 10000;
 const half = (n) => Math.round(n * 2) / 2;
 
-const targetLeading = (size) => {
-  if (size <= base) return print ? 1.333 : 1.5;
+const targetLeading = (step, size) => {
+  if (step <= 0) return print ? 1.333 : 1.5;
   const t = Math.min(1, Math.max(0, Math.log(size / base) / Math.log(4)));
   return print ? 1.333 - 0.283 * t : 1.5 - 0.45 * t;
 };
@@ -87,17 +101,18 @@ const tracking = (size) => {
   return 0;
 };
 
-const bodyLeading = print ? half(base * targetLeading(base)) : base * targetLeading(base);
+const bodyLeading = print ? half(base * targetLeading(0, base)) : base * targetLeading(0, base);
 const grid = gridArg === 'auto' ? bodyLeading : gridArg ? Number(gridArg) : null;
 const snapTo = (size, lh, unitSize) => {
   let leading = Math.round((size * lh) / unitSize) * unitSize;
   if (leading < size * 1.05) leading = Math.ceil((size * 1.05) / unitSize) * unitSize;
   return leading;
 };
-const snap = (size, lh) => {
+const looseBy = 0.2;
+const snap = (step, size, lh) => {
   if (!grid) return null;
   const full = snapTo(size, lh, grid);
-  if (size > base && full / size > lh + 0.2) {
+  if (step > 0 && full / size > lh + looseBy) {
     const halfLine = snapTo(size, lh, grid / 2);
     if (halfLine < full) return { leading: halfLine, half: true };
   }
@@ -110,10 +125,10 @@ for (let i = -down; i <= up; i++) {
   const rawMin = i < 0 ? base * ratioDown ** i : base * ratio ** i;
   const min = print ? half(rawMin) : rawMin;
   const max = print ? min : i < 0 ? baseMax * ratioDown ** i : baseMax * ratioMax ** i;
-  const lh = targetLeading(max);
-  const sMin = snap(min, lh);
-  const sMax = snap(max, lh);
-  steps.push({ step: i, name, min: r2(min), max: r2(max), leading: r2(lh), tracking: tracking(max), snappedMin: sMin?.leading, snappedMax: sMax?.leading, half: Boolean(sMax?.half || sMin?.half) });
+  const lh = r4(targetLeading(i, max));
+  const sMin = snap(i, min, lh);
+  const sMax = snap(i, max, lh);
+  steps.push({ step: i, name, min: r2(min), max: r2(max), lh, leading: r2(lh), tracking: tracking(max), snappedMin: sMin?.leading, snappedMax: sMax?.leading, half: Boolean(sMax?.half || sMin?.half) });
 }
 
 const ups = steps.filter((s) => s.step > 0).reverse();
@@ -134,9 +149,10 @@ roles.label = steps.find((s) => s.step === -2)?.name ?? roles.small;
 const roleOf = (name) => Object.entries(roles).filter(([, v]) => v === name).map(([r]) => r).join(', ');
 
 const warnings = [];
+const notes = [];
 if (!print && base < 16) warnings.push(`web/body-size: body ${base}px is below 16px.`);
 if (print && (base < 9.5 || base > 11.5)) warnings.push(`print/body-size: body ${base}pt is outside 9.5 to 11.5pt for book work (8 to 9pt is fine for editorial with a large x-height).`);
-if (ratio < 1.15) warnings.push(`shared/hierarchy-levels: ratio ${ratio} gives adjacent steps under 1.15x apart; lean on weight or colour too.`);
+if (ratio < 1.15) warnings.push(`shared/hierarchy-levels: ratio ${ratio} gives adjacent steps under 1.15x apart; lean on weight or color to separate levels. For dense UI that resolves it; the ratio can stay.`);
 const smallest = steps[0];
 if (!print && smallest.min < 12) warnings.push(`web/body-size: ${smallest.name} is ${r2(smallest.min)}px at the narrowest viewport, below the ~12px floor.`);
 if (print && smallest.min < 6) warnings.push(`print/small-sizes: ${smallest.name} is ${r2(smallest.min)}pt, below 6pt.`);
@@ -145,10 +161,11 @@ for (const s of steps) {
     const loose = s.snappedMax / s.max;
     if (loose > s.leading + 0.2) {
       const tighter = s.snappedMax - grid;
-      warnings.push(`${print ? 'print' : 'web'}/leading: ${s.name} at ${s.max}${unit} snaps to ${r2(s.snappedMax)}${unit} leading (${r2(loose)}), which is loose. A size of ${r2(tighter / 1.05)}${unit} or less fits ${r2(tighter)}${unit}.`);
+      const hint = tighter > 0 ? ` A size of ${r2(tighter / 1.05)}${unit} or less fits ${r2(tighter)}${unit}.` : ' It is a single grid line already; only a smaller grid tightens it.';
+      warnings.push(`${print ? 'print' : 'web'}/leading: ${s.name} at ${s.max}${unit} snaps to ${r2(s.snappedMax)}${unit} leading (${r2(loose)}), which is loose.${hint}`);
     }
   }
-  if (grid && s.step < 0 && s.snappedMax / s.max > 1.7) warnings.push(`${print ? 'print' : 'web'}/leading: ${s.name} sits on ${r2(s.snappedMax)}${unit} leading (${r2(s.snappedMax / s.max)}): fine for one-line labels, loose for paragraphs.`);
+  if (grid && s.step < 0 && s.snappedMax / s.max > 1.7) notes.push(`${print ? 'print' : 'web'}/leading: ${s.name} sits on ${r2(s.snappedMax)}${unit} leading (${r2(s.snappedMax / s.max)}): fine for one-line labels, loose for paragraphs.`);
   if (!print && s.max / s.min > 2.5) warnings.push(`web/fluid-type: ${s.name} grows ${r2(s.max / s.min)}x between viewports; keep it under 2.5x.`);
 }
 
@@ -161,14 +178,26 @@ const sizeCss = (s) => {
   const hi = Math.max(s.min, s.max);
   return `clamp(${rem(lo)}, ${rem(intercept)} + ${r4(slope * 100)}vw, ${rem(hi)})`;
 };
-const leadingCss = (s) => {
+const gridVar = `var(--${prefix}-grid)`;
+const gridLiteral = grid && (print ? `${r2(grid)}pt` : rem(grid));
+const snapCss = (lh, g) => `max(round(nearest, ${lh}em, ${g}), round(up, 1.05em, ${g}))`;
+const leadingCss = (s, g = gridVar) => {
   if (!grid) return String(s.leading);
   if (print) return `${s.snappedMax}pt`;
-  return s.half ? `round(up, ${s.leading}em, calc(var(--${prefix}-grid) / 2))` : `round(up, ${s.leading}em, var(--${prefix}-grid))`;
+  if (s.min === s.max) {
+    const lines = r4(s.snappedMax / grid);
+    return lines === 1 ? g : `calc(${g} * ${lines})`;
+  }
+  const full = snapCss(s.lh, g);
+  if (s.step <= 0) return full;
+  const halfLine = `min(${full}, ${snapCss(s.lh, `calc(${g} / 2)`)})`;
+  return `max(${halfLine}, ${full} - max(0px, (${full} - ${r4(s.lh + looseBy)}em) * 1000000))`;
 };
 
 if (opt('compare', null)) {
   const list = opt('compare', '').split(',').map((r) => r.trim()).filter(Boolean);
+  const unknown = list.filter((r) => !(ratioOf(r) > 1));
+  if (unknown.length) fail(`--compare got ${unknown.join(', ')}; use numbers above 1 or names. ${ratioNames}`);
   const names = steps.slice().reverse().map((s) => s.name);
   const cols = list.map((r) => {
     const q = ratioOf(r);
@@ -205,7 +234,7 @@ if (opt('compare', null)) {
   rows.forEach((r) => console.log(line(r)));
 } else if (format === 'css') {
   const out = [':root {'];
-  if (grid) out.push(`  --${prefix}-grid: ${print ? `${r2(grid)}pt` : rem(grid)};`);
+  if (grid) out.push(`  --${prefix}-grid: ${gridLiteral};`);
   if (k && grid) out.push(`  --${prefix}-k: ${k};`);
   for (const s of steps) {
     out.push(`  --${prefix}-${s.name}: ${sizeCss(s)};`);
@@ -234,20 +263,19 @@ if (opt('compare', null)) {
   }
   console.log(out.join('\n').trimEnd());
 } else if (format === 'json') {
-  const tokens = { [prefix]: {}, leading: {}, tracking: {}, roles };
+  const tokens = { grid: grid ? gridLiteral : null, steps: {}, roles };
   for (const s of steps) {
-    tokens[prefix][s.name] = { $type: 'dimension', $value: sizeCss(s), min: `${s.min}${unit}`, max: `${s.max}${unit}` };
-    tokens.leading[s.name] = { $value: leadingCss(s) };
-    tokens.tracking[s.name] = { $type: 'dimension', $value: `${s.tracking}em` };
+    tokens.steps[s.name] = { fontSize: sizeCss(s), lineHeight: leadingCss(s, gridLiteral), letterSpacing: `${s.tracking}em`, min: `${s.min}${unit}`, max: `${s.max}${unit}` };
   }
-  if (grid) tokens.grid = { $type: 'dimension', $value: `${r2(grid)}${print ? 'pt' : 'px'}` };
   console.log(JSON.stringify(tokens, null, 2));
 } else if (format === 'tailwind') {
   const fontSize = {};
-  for (const s of steps) fontSize[s.name] = [sizeCss(s), { lineHeight: leadingCss(s), letterSpacing: `${s.tracking}em` }];
+  for (const s of steps) fontSize[s.name] = [sizeCss(s), { lineHeight: leadingCss(s, gridLiteral), letterSpacing: `${s.tracking}em` }];
   const entries = Object.entries(fontSize).map(([k2, [size, meta]]) => `        ${/^\d/.test(k2) ? `'${k2}'` : k2}: ['${size}', { lineHeight: '${meta.lineHeight}', letterSpacing: '${meta.letterSpacing}' }],`);
   const heads = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((h) => `  ${h} { @apply text-${roles[h]}; }`);
-  console.log(`// tailwind.config.js\nexport default {\n  theme: {\n    extend: {\n      fontSize: {\n${entries.join('\n')}\n      },\n    },\n  },\n};\n\n/* Base layer: heading roles. Lede: text-${roles.lede}. Small: text-${roles.small}. Label: text-${roles.label}. */\n@layer base {\n${heads.join('\n')}\n}`);
+  const others = [['Lede', roles.lede], ['Small', roles.small], ['Label', roles.label]].filter(([, v]) => v).map(([l, v]) => ` ${l}: text-${v}.`).join('');
+  const gridNote = grid && !print ? `// Line heights snap to the ${r2(grid)}${unit} grid (${gridLiteral}) on their own; no custom property is needed.\n` : '';
+  console.log(`// tailwind.config.js\n${gridNote}export default {\n  theme: {\n    extend: {\n      fontSize: {\n${entries.join('\n')}\n      },\n    },\n  },\n};\n\n/* Base layer: heading roles.${others} */\n@layer base {\n${heads.join('\n')}\n}`);
 } else if (format === 'spec') {
   const labels = { display: 'Display', h1: 'Heading 1', h2: 'Heading 2', h3: 'Heading 3', h4: 'Heading 4', h5: 'Heading 5', h6: 'Heading 6', lede: 'Lede', body: 'Body', small: 'Caption', label: 'Label' };
   for (const [role, name] of Object.entries(roles)) {
@@ -262,7 +290,8 @@ if (opt('compare', null)) {
   process.exit(1);
 }
 
-if (warnings.length) {
+if (warnings.length || notes.length) {
   console.error('\nChecks against typography-check rules:');
-  warnings.forEach((w) => console.error(`- ${w}`));
+  warnings.forEach((w) => console.error(`- warning: ${w}`));
+  notes.forEach((n) => console.error(`- note: ${n}`));
 }

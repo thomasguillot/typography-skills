@@ -5,7 +5,7 @@ description: Use when creating or redesigning a type scale, typographic hierarch
 
 # Typography scale
 
-Generates a type scale from a body size and a ratio: sizes, leading, tracking and heading roles, as CSS custom properties, design tokens, Tailwind theme values or a print spec sheet. The maths is done by `scripts/scale.mjs`; the judgement is choosing the ratio for the context. Checked against the rules in the sibling `typography-check` skill.
+Generates a type scale from a body size and a ratio: sizes, leading, tracking and heading roles, as CSS custom properties, JSON tokens, Tailwind theme values or a print spec sheet. The maths is done by `scripts/scale.mjs`; the judgement is choosing the ratio for the context. Checked against the rules in the sibling `typography-check` skill.
 
 ## 1. Establish the context
 
@@ -24,7 +24,7 @@ Offer two or three ratios that fit the context, with one line of reasoning each,
 
 | Context | Ratio | Why |
 |---|---|---|
-| Dense product UI, dashboards, data tables | major-second 1.125 to minor-third 1.2 | Many levels in little space; weight and colour carry hierarchy |
+| Dense product UI, dashboards, data tables | major-second 1.125 to minor-third 1.2 | Many levels in little space; weight and color carry hierarchy, so the hierarchy warning below 1.15 is expected |
 | Docs, long-form reading, most websites | major-third 1.25 | Clear headings without shouting |
 | Editorial, marketing, landing pages | perfect-fourth 1.333 | Strong contrast, room for display sizes |
 | Posters, portfolios, display-led brand | perfect-fifth 1.5 or golden 1.618 | Dramatic jumps; use fewer steps (`--up 3` or `4`), they outgrow small screens fast |
@@ -42,13 +42,13 @@ node scripts/scale.mjs --medium print --base 10.5 --ratio minor-third --format s
 
 Run `node scripts/scale.mjs --help` for every flag. `--down` and `--up` set how many steps below and above body (defaults 2 and 6 for web, 2 and 4 for print). With 6 or more steps up, the top step is `display` and h1 is the next one down; with fewer, h1 is the top step and missing heading levels fall back to body size. Steps below body use a gentler `--ratio-down` (1.125 web, 1.1 print) so small text stays readable. `--k` is the body face's (ascent − descent) ÷ 2 per em; with `--grid` it adds CSS that snaps each text block's baseline to the grid. Measure it with canvas `measureText` (`fontBoundingBoxAscent` and `fontBoundingBoxDescent` at 100px), or omit it.
 
-The script prints warnings to stderr when a step breaks a `typography-check` rule (body below 16px, xs below 12px, fluid growth over 2.5×, flat ratios) or when snapped leading turns loose. Act on every warning: change the size, the ratio or the step count, then run it again.
+The script prints checks to stderr. Lines starting `warning:` break a `typography-check` rule (body below 16px, xs below 12px, fluid growth over 2.5×, flat ratios) or flag loose snapped leading. Resolve each one, then run it again: change the size, the ratio or the step count, or, for `shared/hierarchy-levels`, separate the levels with weight or color and keep the ratio. Lines starting `note:` are informational (small steps on a full grid line are fine for one-line labels); pass them on, nothing to fix.
 
 ## 4. Deliver
 
 - The table of steps and roles (h1 to h6, display, lede, body, small, label), then the requested format. The `css` and `tailwind` formats include the heading rules.
 - Where leading says "half line", that heading's baselines land on half grid lines. Say so.
-- One line on how to apply it: tokens on `:root`, heading rules, and for a grid the baseline-snapping block.
+- One line on how to apply it: tokens on `:root`, heading rules, and for a grid the baseline-snapping block. Grid leading in `css` uses `--<prefix>-grid` (`--text-grid` by default), defined in the same `:root`; `tailwind` and `json` write the grid value into each line height, so they need nothing else. `json` is plain JSON with CSS values per step, not W3C design tokens (DTCG); convert it if a DTCG tool needs it.
 - If a live page exists, run `typography-check` on it after the scale is applied.
 
 ## Gotchas

@@ -1,36 +1,47 @@
 #!/usr/bin/env node
 // Usage: node contrast.mjs TEXT BACKGROUND [--size PX] [--weight N] [--body]
-// Colours: #rgb, #rrggbb, #rrggbbaa, rgb()/rgba(). Prints WCAG 2.x ratio and APCA Lc with thresholds.
+// Colours: #rgb, #rgba, #rrggbb, #rrggbbaa, rgb()/rgba() with numbers or percentages, basic named colours.
+// Prints WCAG 2.x ratio and APCA Lc with thresholds.
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
   const i = args.indexOf(name);
   return i === -1 ? fallback : args[i + 1];
 };
-const [fgArg, bgArg] = args.filter((a, i) => !a.startsWith('--') && !['--size', '--weight'].includes(args[i - 1]));
-if (!fgArg || !bgArg) {
-  console.error('Usage: node contrast.mjs TEXT BACKGROUND [--size PX] [--weight N] [--body]');
+const USAGE = 'Usage: node contrast.mjs TEXT BACKGROUND [--size PX] [--weight N] [--body]\nColours: #rgb, #rgba, #rrggbb, #rrggbbaa, rgb(0 0 0 / 50%), rgba(0, 0, 0, 0.5), or a basic name such as black.';
+const fail = (msg) => {
+  console.error(`${msg}\n${USAGE}`);
   process.exit(1);
-}
+};
+const [fgArg, bgArg] = args.filter((a, i) => !a.startsWith('--') && !['--size', '--weight'].includes(args[i - 1]));
+if (!fgArg || !bgArg) fail('Need a text and a background colour.');
 const size = Number(flag('--size', 16));
 const weight = Number(flag('--weight', 400));
 const isBody = args.includes('--body');
 
+const NAMED = {
+  black: '000', white: 'fff', gray: '808080', grey: '808080', silver: 'c0c0c0', red: 'f00', maroon: '800000', orange: 'ffa500', yellow: 'ff0',
+  olive: '808000', lime: '0f0', green: '008000', aqua: '0ff', cyan: '0ff', teal: '008080', blue: '00f', navy: '000080', fuchsia: 'f0f', magenta: 'f0f', purple: '800080',
+};
 const parse = (s) => {
-  s = s.trim();
-  let m = s.match(/^#([0-9a-f]{3,8})$/i);
+  s = s.trim().toLowerCase();
+  if (NAMED[s]) s = `#${NAMED[s]}`;
+  let m = s.match(/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/);
   if (m) {
     let h = m[1];
     if (h.length <= 4) h = [...h].map((c) => c + c).join('');
     const n = (i) => parseInt(h.slice(i, i + 2), 16);
     return { r: n(0), g: n(2), b: n(4), a: h.length === 8 ? n(6) / 255 : 1 };
   }
-  m = s.match(/rgba?\(([^)]+)\)/i);
-  if (m) {
-    const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
-    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  m = s.match(/^rgba?\(([^)]+)\)$/);
+  const p = m?.[1].split(/[\s,/]+/).filter(Boolean);
+  if (p && (p.length === 3 || p.length === 4)) {
+    const num = (v, scale) => (v.endsWith('%') ? (parseFloat(v) / 100) * scale : Number(v));
+    const [r, g, b] = p.slice(0, 3).map((v) => Math.min(255, Math.max(0, num(v, 255))));
+    const a = p[3] === undefined ? 1 : Math.min(1, Math.max(0, num(p[3], 1)));
+    if ([r, g, b, a].every(Number.isFinite)) return { r, g, b, a };
   }
-  throw new Error(`Unrecognised colour: ${s}`);
+  fail(`Unrecognised colour: ${s}`);
 };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 const blend = (t, u) => ({ r: t.r * t.a + u.r * (1 - t.a), g: t.g * t.a + u.g * (1 - t.a), b: t.b * t.a + u.b * (1 - t.a), a: 1 });
@@ -71,7 +82,8 @@ const bg = blend(parse(bgArg), { r: 255, g: 255, b: 255, a: 1 });
 const fg = blend(parse(fgArg), bg);
 const l1 = luminance(fg) + 0.05;
 const l2 = luminance(bg) + 0.05;
-const ratio = round(Math.max(l1, l2) / Math.min(l1, l2));
+const rawRatio = Math.max(l1, l2) / Math.min(l1, l2);
+const ratio = round(rawRatio);
 const large = size >= 24 || (size >= 18.66 && weight >= 700);
 const lc = apcaLc(fg, bg);
 const required = apcaRequired();
@@ -82,6 +94,6 @@ console.log(JSON.stringify({
   sizePx: size,
   weight,
   body: isBody,
-  wcag2: { ratio, AA: ratio >= (large ? 3 : 4.5), AAA: ratio >= (large ? 4.5 : 7), largeText: large },
+  wcag2: { ratio, AA: rawRatio >= (large ? 3 : 4.5), AAA: rawRatio >= (large ? 4.5 : 7), largeText: large },
   apca: { lc, required, pass: Math.abs(lc) >= required },
 }, null, 2));

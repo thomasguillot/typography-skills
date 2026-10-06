@@ -60,7 +60,7 @@ npm install
 npm run build
 ```
 
-The checks in `site/scripts/` drive the installed Chrome through `playwright-core` (set `CHROME_PATH` to use another Chromium). They serve `site/dist` by default, or take `--url`, and run at 1280, 1024, 768 and 375px unless `--widths` says otherwise:
+The checks in `site/scripts/` drive the installed Chrome through `playwright-core` (set `CHROME_PATH` to use another Chromium). They serve `site/dist` by default, or take `--url`. The baseline and overflow checks run at 1280, 1024, 768 and 375px, the type and screenshot scripts at 1280 and 375px, unless `--widths` says otherwise:
 
 ```sh
 npm run check                 # build, then the baseline and overflow checks; exits non-zero on a failure

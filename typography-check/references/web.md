@@ -25,7 +25,7 @@ Applies to HTML/CSS/JSX, design tokens and live pages. Not to `@media print` blo
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `web/measure` | Body text runs 45–75 characters per line (66 ideal); multi-column text 40–50; captions and UI text 35–50. Over ~90 is a P1. Judge by measured characters (`approxCharsPerLine`), not by the `ch` value: `1ch` is the width of the zero, wider than the average letter in most proportional faces, so `65ch` often holds 75–90 characters. | Set the column width from the measured average character width (often about 30–34em for body text), with `padding-inline`. On narrow viewports let the measure shrink; never force horizontal scrolling. | P1 |
+| `web/measure` | Body text runs 45–75 characters per line (66 ideal); multi-column text 40–50; captions and UI text 35–50. Judge by measured characters (`approxCharsPerLine`), not by the `ch` value: `1ch` is the width of the zero, wider than the average letter in most proportional faces, so `65ch` often holds 75–90 characters. | Set the column width from the measured average character width (often about 30–34em for body text), with `padding-inline`. On narrow viewports let the measure shrink; never force horizontal scrolling. | P1 over ~90, P2 otherwise |
 | `web/ragged-right` | Body text is ragged right. Browser justification without good hyphenation opens rivers; centred text is for short lines only (headings, a one- or two-line lede). | `text-align: start`. If justifying, require `hyphens: auto` with a correct `lang`, and only on generous measures. | P2 |
 
 ## Web fonts and loading
@@ -40,7 +40,7 @@ Applies to HTML/CSS/JSX, design tokens and live pages. Not to `@media print` blo
 | `web/fallback-metrics` | The fallback face is metric-matched (`size-adjust`, `ascent-override`, `descent-override`, `line-gap-override`) so the swap does not shift layout. | Add a fallback `@font-face` from Fallback Font Generator, Font Style Matcher or Fontaine. | P3 |
 | `web/variable-fonts` | When a family ships a variable version and 3+ weights/styles are used, the variable file is used (one request, any weight). `font-variation-settings` only for custom axes. | Switch to the variable file with `font-weight: 100 900`. | P3 |
 | `web/system-stack` | System stacks (`system-ui, sans-serif`) are a legitimate choice for UI and dashboards; for editorial and brand work a custom face carries more identity. Not a finding by itself. | – | – |
-| `web/rendered-font` | The face that actually rendered is the one declared. A 404, CORS failure or missing `@font-face` silently falls back. Check `fontsLoaded[].status` and `roles[].font.likely` from the extractor. | Fix the path, CORS header or declaration. | P0 |
+| `web/rendered-font` | The face that actually rendered is the one declared. A 404, CORS failure or missing `@font-face` silently falls back. Check `roles[].font.likely` and `fontsLoaded[].status` from the extractor: `error` means the file failed, while `unloaded` is normal for faces and `unicode-range` subsets the page never used. | Fix the path, CORS header or declaration. | P0 |
 
 ## OpenType and rendering
 
@@ -71,6 +71,8 @@ The extractor reports `apca.lc` (signed: negative means light text on dark), `ap
 | Body text columns, ≥ 18px regular or ≥ 16px medium | 75 (90 preferred) |
 | Body text smaller than that | 90 |
 | Other content text, ≥ 24px regular or ≥ 16px bold | 60 |
+| Other content text, 14–24px regular (labels, captions, UI) | 75 |
+| Other content text smaller than 14px | 90 |
 | Headlines, ≥ 36px regular or ≥ 24px bold | 45 |
 | Placeholder, disabled, copyright lines (never body) | 30 |
 | Any of the above at weight ≤ 300 | one tier stricter (+15, capped at 90) |
@@ -78,7 +80,7 @@ The extractor reports `apca.lc` (signed: negative means light text on dark), `ap
 How to report the two together:
 
 - **WCAG 2.x is the compliance check.** A WCAG AA failure is P1 (`web/contrast`) even when APCA passes, because WCAG 2.x is what audits and the law measure today. Say that APCA disagrees, since it often points to the better fix.
-- **APCA failing while WCAG passes is P2 (`web/apca`).** This is common for light weights, small sizes and dark mode, where WCAG 2.x overstates light-on-dark contrast. Name both numbers: "4.6:1 passes WCAG AA, but Lc 52 is below the 75 APCA wants for 15px body text".
+- **APCA failing while WCAG passes is P2 (`web/apca`).** This is common for light weights, small sizes and dark mode, where WCAG 2.x overstates light-on-dark contrast. Name both numbers: "4.6:1 passes WCAG AA, but Lc 52 is below the 75 APCA wants for 18px body text".
 - **Use APCA to choose the fix.** It tells you whether more size, more weight or more contrast fixes the problem, because size and weight change the threshold.
 - **Static review**: compute both by hand from the colours (WCAG relative luminance; APCA 0.0.98G constants as in `scripts/extract-web-type.js`), or say that you have not computed them.
 
@@ -86,7 +88,7 @@ How to report the two together:
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `web/dark-halation` | Dark mode avoids pure #fff on pure #000 (halation). Background around #121212–#1a1a1a, text #e0e0e0–#f0f0f0, roughly 10:1. | Soften both ends via the colour tokens. | P2 |
+| `web/dark-halation` | Dark mode avoids pure #fff on pure #000 (halation). Background around #121212–#1a1a1a, text #e0e0e0–#f0f0f0, which gives about 13–16:1. | Soften both ends via the colour tokens. | P2 |
 | `web/dark-weight` | Light-on-dark text looks **thinner**, so dark mode keeps or slightly **increases** weight: +20 to +50 on a variable `wght` axis, or one step up. Never decrease it. Most visible at small sizes and light weights (300–350). | Add a `prefers-color-scheme: dark` weight bump. | P2 |
 | `web/dark-leading` | Dark mode may want slightly more line-height (+0.05–0.1). Minor. | – | P3 |
 
