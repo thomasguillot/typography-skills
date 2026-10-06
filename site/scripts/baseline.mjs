@@ -1,8 +1,8 @@
 import { launch, openAt, options } from './lib/browser.mjs';
 
 const OPTICAL = {
-  '.command__copy': 'Copy buttons are centred optically against their step, not set on the grid.',
-  '.button': 'The button sits on the grid; its label is centred optically in the box.',
+  '.command__copy': 'Copy buttons are centered optically against their step, not set on the grid.',
+  '.hero .button': 'The button sits on the grid; its label is centered optically in the box.',
   '.page-sheet': 'The print page specimen is set on its own 13pt leading.',
 };
 

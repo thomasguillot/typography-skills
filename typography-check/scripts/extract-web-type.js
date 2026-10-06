@@ -4,7 +4,7 @@ async () => {
   const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 
   const pixel = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-  const parseColour = (str) => {
+  const parseColor = (str) => {
     const m = str.match(/^rgba?\(([^)]+)\)$/);
     if (m) {
       const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
@@ -39,14 +39,14 @@ async () => {
   };
   const probe = document.documentElement.appendChild(document.createElement('type-canvas-probe'));
   probe.style.backgroundColor = 'Canvas';
-  const canvasColour = { ...(parseColour(getComputedStyle(probe).backgroundColor) ?? { r: 255, g: 255, b: 255 }), a: 1 };
+  const canvasColor = { ...(parseColor(getComputedStyle(probe).backgroundColor) ?? { r: 255, g: 255, b: 255 }), a: 1 };
   probe.remove();
   const opaqueBg = (el) => {
-    const c = el && parseColour(getComputedStyle(el).backgroundColor);
+    const c = el && parseColor(getComputedStyle(el).backgroundColor);
     return c && c.a > 0 ? c : null;
   };
   const propagated = opaqueBg(document.documentElement) ? document.documentElement : opaqueBg(document.body) ? document.body : null;
-  const pageBg = propagated ? over(opaqueBg(propagated), canvasColour) : canvasColour;
+  const pageBg = propagated ? over(opaqueBg(propagated), canvasColor) : canvasColor;
   const paint = (el, fg = NONE, withOpacity = true) => {
     let text = fg;
     let back = NONE;
@@ -132,7 +132,7 @@ async () => {
     return null;
   };
   const drawnBox = (el, cs) => {
-    const bg = parseColour(cs.backgroundColor);
+    const bg = parseColor(cs.backgroundColor);
     if (bg && bg.a > 0) {
       const under = paint(el.parentElement ?? el).bg;
       if (hex(blend(bg, under)) !== hex(under)) return true;
@@ -163,7 +163,7 @@ async () => {
     if (lineCount(el, size) <= 1 && drawnBox(el, cs)) {
       const capHeight = canvas.measureText('H').actualBoundingBoxAscent;
       const baseline = glyphBox.top + m.fontBoundingBoxAscent;
-      out.capCentreOffsetPx = round(baseline - capHeight / 2 - (rect.top + rect.height / 2), 1);
+      out.capCenterOffsetPx = round(baseline - capHeight / 2 - (rect.top + rect.height / 2), 1);
     }
     return out;
   };
@@ -306,7 +306,7 @@ async () => {
 
     const size = parseFloat(cs.fontSize);
     const lh = cs.lineHeight === 'normal' ? null : parseFloat(cs.lineHeight);
-    const fg = parseColour(cs.color);
+    const fg = parseColor(cs.color);
     let painted = paint(el, fg ?? undefined);
     const { opacity, imageBehind } = painted;
     if (opacity === 0) painted = paint(el, fg ?? undefined, false);
@@ -333,9 +333,9 @@ async () => {
       features: cs.fontFeatureSettings,
       kerning: cs.fontKerning,
       opticalSizing: cs.fontOpticalSizing,
-      colour: fg ? hex(fg) : cs.color,
+      color: fg ? hex(fg) : cs.color,
       background: hex(bg),
-      contrast: fg ? round(wcag, 2) : null,
+      contrast: fg ? Math.floor(wcag * 100) / 100 : null,
       wcagAA: fg ? wcag >= (size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700) ? 3 : 4.5) : null,
       apca: fg ? (() => {
         const lc = apcaLc(painted.fg, bg);
@@ -357,7 +357,7 @@ async () => {
         thickness: cs.textDecorationThickness,
         offset: cs.textUnderlineOffset,
         skipInk: cs.textDecorationSkipInk,
-        decorationColour: cs.textDecorationColor,
+        decorationColor: cs.textDecorationColor,
       };
     }
     roles.set(key, entry);
@@ -369,7 +369,7 @@ async () => {
     url: location.href,
     viewport: { width: innerWidth, height: innerHeight, meta: viewport ? viewport.content : null },
     rootFontSizePx: parseFloat(getComputedStyle(document.documentElement).fontSize),
-    colourScheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    colorScheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
     fontsLoaded: loadedFaces,
     fontFaceRules: sheets.fontFaces,
     fontPreloads: [...document.querySelectorAll('link[rel="preload"][as="font"]')].map((l) => ({ href: l.getAttribute('href'), crossorigin: l.hasAttribute('crossorigin') })),

@@ -5,7 +5,7 @@ description: Use when creating or redesigning a type scale, typographic hierarch
 
 # Typography scale
 
-Generates a type scale from a body size and a ratio: sizes, leading, tracking and heading roles, as CSS custom properties, JSON tokens, Tailwind theme values or a print spec sheet. The maths is done by `scripts/scale.mjs`; the judgement is choosing the ratio for the context. Checked against the rules in the sibling `typography-check` skill.
+Generates a type scale from a body size and a ratio: sizes, leading, tracking and heading roles, as CSS custom properties, JSON tokens, Tailwind theme values or a print spec sheet. The math is done by `scripts/scale.mjs`; the judgment is choosing the ratio for the context. Checked against the rules in the sibling `typography-check` skill.
 
 ## 1. Establish the context
 

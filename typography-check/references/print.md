@@ -8,13 +8,13 @@ Check every finding against this table before reporting it. These are the common
 
 | Web habit | In print |
 |---|---|
-| Body ≥ 16px; "use rem, never px" | Points and millimetres are correct. Body 9.5–11.5pt for books, 8–9pt is routine for editorial with a large x-height. 16px ≈ 12pt is large for print body. |
+| Body ≥ 16px; "use rem, never px" | Points and millimeters are correct. Body 9.5–11.5pt for books, 8–9pt is routine for editorial with a large x-height. 16px ≈ 12pt is large for print body. |
 | Unitless `line-height` | Leading is specified absolutely: 10.5/14pt. It sets the baseline grid. Absolute leading in pt is correct in print CSS. |
 | Avoid justified text | Justified **with hyphenation** is the book default. Flag justification only when hyphenation is off or unconstrained, or on narrow measures. |
-| Soft near-black (#333, #1a1a1a) for comfort | Body text is 100% K (single black ink, `#000` in print CSS). Any grey or near-black prints as a tint or four-colour mix and fringes on misregistration. |
+| Soft near-black (#333, #1a1a1a) for comfort | Body text is 100% K (single black ink, `#000` in print CSS). Any gray or near-black prints as a tint or four-color mix and fringes on misregistration. |
 | A good fallback font stack | There is no fallback. A missing font means the job prints in the wrong face (or Courier). Verify the font is installed, licensed for print/embedding and embedded in the PDF. |
 | `clamp()`, `vw`, breakpoints | Meaningless on a fixed page. Use fixed pt sizes. |
-| Contrast ratio maths (WCAG on RGB) | Still useful for PDFs read on screen; for press, check reversed type size/weight, stock and ink instead. |
+| Contrast ratio math (WCAG on RGB) | Still useful for PDFs read on screen; for press, check reversed type size/weight, stock and ink instead. |
 | `text-wrap: balance/pretty`, accept imperfect breaks | Every break can be fixed by hand. Widows, orphans and runts are findings, not tolerances. |
 | `font-display`, preload, woff2, subsetting for speed | Not relevant. Embedding and licensing replace them. |
 
@@ -27,7 +27,7 @@ Check every finding against this table before reporting it. These are the common
 | `print/mirrored-margins` | Bound work (books, magazines, brochures) uses mirrored left/right pages with an inner margin plus a binding allowance (perfect binding loses 5–10mm into the gutter). Single-sided documents may be symmetric left/right. | CSS: `@page :left { margin-left: OUTER; margin-right: INNER }` and `@page :right { … }`; DTP: facing pages on. | P2 |
 | `print/baseline-grid` | Body text locks to a baseline grid equal to the body leading; heading, caption and image heights and the spaces around them are whole multiples (or clean halves) of it. Paragraph spacing that is not a multiple pushes lines off the grid, and lines stop backing up through thin paper. | Set spaces in multiples of the leading; derive the grid from the type, never the reverse. | P2 |
 | `print/text-block-lines` | The text block height holds a whole number of body lines. | Adjust the top or bottom margin until (block height ÷ leading) is an integer. | P3 |
-| `print/columns` | Column gutters are about one baseline unit (or one em); multi-column grids divide cleanly (12 for magazines and catalogues). | – | P3 |
+| `print/columns` | Column gutters are about one baseline unit (or one em); multi-column grids divide cleanly (12 for magazines and catalogs). | – | P3 |
 
 ## Setting type
 
@@ -40,7 +40,7 @@ Check every finding against this table before reporting it. These are the common
 | `print/print-faces` | Faces suited to print at the sizes used; optical sizes where the family has them (text cut ~8–14pt, display cut 24pt+). A display cut at 9pt is spidery; a text cut at 60pt is coarse. | Use the right optical size. | P2 |
 | `print/charset` | The face covers every glyph the job needs (small caps, oldstyle and tabular figures, fractions, language coverage). There is no fallback on paper. | Check the character set before committing. | P1 if glyphs are missing |
 | `print/rendered-font` | The face in the output is the one specified. A font file missing from the project, not installed or failing to load is silently replaced (Times, Helvetica, DejaVu). Confirm with `inspect-pdf.py` (`structure.fonts`) on the exported PDF. | Supply the font files, then re-export and re-inspect. | P0 |
-| `print/licence` | The font licence covers desktop/print use and PDF embedding. A clearly web-only licence blocks the print run. | Check the EULA. | P3, P1 if the licence is web-only |
+| `print/license` | The font license covers desktop/print use and PDF embedding. A clearly web-only license blocks the print run. | Check the EULA. | P3, P1 if the license is web-only |
 
 ## Justification and hyphenation
 
@@ -61,7 +61,7 @@ Check every finding against this table before reporting it. These are the common
 |---|---|---|---|
 | `print/page-rule` | A print stylesheet defines `@page` with `size` and `margin` (bottom largest). Without it the browser's defaults decide the page. | `@page { size: A4; margin: 20mm 18mm 28mm; }`. | P1 |
 | `print/absolute-units` | Print styles use pt and mm; not px, rem, vw or `clamp()`. | `body { font-size: 10.5pt; line-height: 14pt; }`. | P2 |
-| `print/black-text` | Print body text is `#000` (or the K-only black of the press profile), not a muted token inherited from the screen theme. | Override colour in `@media print`. | P1 |
+| `print/black-text` | Print body text is `#000` (or the K-only black of the press profile), not a muted token inherited from the screen theme. | Override color in `@media print`. | P1 |
 | `print/hide-chrome` | Navigation, headers, footers, buttons and back-to-top links are hidden. | `display: none` in `@media print`. | P3 |
 | `print/link-urls` | Where the document will be read on paper, link destinations print after the anchor text. | `a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; }`. | P3 |
 | `print/paged-media` | Serious paginated output (running heads, folios, generated contents) uses Paged.js or a Paged Media engine, with margin boxes for running heads and page numbers and `@page :first` for chapter openers. | Add margin-box content. | P3 |
@@ -72,12 +72,12 @@ Skip this section for office printing and PDFs that will only be read on screen.
 
 | ID | Check | Fix | Sev |
 |---|---|---|---|
-| `print/text-100k` | Body text and small type are 100% K only. Four-colour black or grey text (e.g. `CMYK 68 63 63 58` from an RGB `#333` conversion) misregisters into coloured fringes. Registration black (100/100/100/100) is never used for design. | Set text to 0/0/0/100. | P0 |
+| `print/text-100k` | Body text and small type are 100% K only. Four-color black or gray text (e.g. `CMYK 68 63 63 58` from an RGB `#333` conversion) misregisters into colored fringes. Registration black (100/100/100/100) is never used for design. | Set text to 0/0/0/100. | P0 |
 | `print/overprint` | Small black type overprints (no knockout hairline). | Verify overprint settings in the export or prepress. | P2 |
 | `print/rich-black` | Rich black (e.g. 60/40/40/100) only on large solids, within the printer's total ink limit (~300% coated, less uncoated). | Restrict rich black to solids. | P2 |
-| `print/rgb-gamut` | Brand colours were proofed in CMYK or specified as spot (Pantone). Saturated RGB blues, greens and oranges dull on press. | Convert and proof; use a spot colour for brand work. | P2 |
+| `print/rgb-gamut` | Brand colors were proofed in CMYK or specified as spot (Pantone). Saturated RGB blues, greens and oranges dull on press. | Convert and proof; use a spot color for brand work. | P2 |
 | `print/stock` | Type suits the stock: on uncoated paper and newsprint use sturdier faces, open counters, slightly larger sizes and no hairlines (dot gain fattens). | Adjust face or size for the stock; proof on the real paper. | P2 |
-| `print/reversed-type` | Reversed-out (white on colour) text is ≥ 8pt, medium rather than light weight, without fine serifs, and never reversed out of four-colour black on uncoated stock. | Increase size or weight; reverse out of a single ink. | P1 |
+| `print/reversed-type` | Reversed-out (white on color) text is ≥ 8pt, medium rather than light weight, without fine serifs, and never reversed out of four-color black on uncoated stock. | Increase size or weight; reverse out of a single ink. | P1 |
 | `print/bleed` | Anything that touches the page edge extends 3mm (1/8in in the US) past the trim. | Extend artwork; CSS Paged Media `bleed: 3mm; marks: crop`. | P1 |
 | `print/safety` | Text and critical elements sit ≥ 3–5mm inside the trim. | Pull them in. | P1 |
 | `print/resolution` | Raster images ~300ppi at printed size; type and logos stay vector, never rasterised. | Replace low-res images; re-export text as text. | P1 |

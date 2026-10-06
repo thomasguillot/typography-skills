@@ -61,16 +61,10 @@ def structure(path):
         return {"error": "qpdf not installed (brew install qpdf); structure, fonts and boxes skipped"}
     res = run(["qpdf", "--json=2", path])
     if isinstance(res, Exception) or not res.stdout:
-        res = run(["qpdf", "--json", path])
-    if isinstance(res, Exception) or not res.stdout:
         return {"error": f"qpdf failed: {getattr(res, 'stderr', res)}"}
     try:
         data = json.loads(res.stdout)
-        if isinstance(data.get("qpdf"), list):
-            meta, objs = data["qpdf"][0], data["qpdf"][1]
-        else:
-            meta, objs = data.get("parameters", {}), data["objects"]
-        return structure_from(data, meta, objs)
+        return structure_from(data, data["qpdf"][0], data["qpdf"][1])
     except (KeyError, IndexError, TypeError, ValueError, AttributeError) as exc:
         return {"error": f"qpdf JSON not understood ({type(exc).__name__}: {exc}); upgrade qpdf (brew upgrade qpdf). Structure, fonts and boxes skipped"}
 
@@ -202,11 +196,11 @@ def structure_from(data, meta, objs):
     return out
 
 
-COLOUR_OPS = re.compile(rb"(?<![\w/.])(?:(/[^\s/\[\]()<>]+)\s+(cs|CS)|((?:-?[\d.]+\s+){1,4})(k|K|rg|RG|g|G|sc|scn|SC|SCN))(?![\w*'\"])")
+COLOR_OPS = re.compile(rb"(?<![\w/.])(?:(/[^\s/\[\]()<>]+)\s+(cs|CS)|((?:-?[\d.]+\s+){1,8})(k|K|rg|RG|g|G|sc|scn|SC|SCN))(?![\w*'\"])")
 DEVICE_BY_COUNT = {1: "/DeviceGray", 3: "/DeviceRGB", 4: "/DeviceCMYK"}
 
 
-def colour_label(space, vals, resources):
+def color_label(space, vals, resources):
     n = len(vals)
     kind = space
     if space.startswith("/") and space.lstrip("/") in resources:
@@ -222,7 +216,7 @@ def colour_label(space, vals, resources):
         elif vals[3] == 1 and sum(vals[:3]) > 0:
             label += " (rich black)"
         elif min(vals[:3]) > 0.2 and vals[3] > 0.2:
-            label += " (four-colour grey/black)"
+            label += " (four-color gray/black)"
         return label
     if kind == "/DeviceRGB" and n == 3:
         return "RGB #%02x%02x%02x" % tuple(round(v * 255) for v in vals)
@@ -231,8 +225,8 @@ def colour_label(space, vals, resources):
     return f"{kind.lstrip('/')} " + " ".join(f"{v:g}" for v in vals)
 
 
-def colours(path, resources=None):
-    """Count fill/stroke colour operators in the uncompressed content streams."""
+def colors(path, resources=None):
+    """Count fill/stroke color operators in the uncompressed content streams."""
     if not shutil.which("qpdf"):
         return None
     try:
@@ -244,7 +238,7 @@ def colours(path, resources=None):
     found = Counter()
     for chunk in raw.split(b"endstream"):
         spaces = {"fill": "/DeviceGray", "stroke": "/DeviceGray"}
-        for m in COLOUR_OPS.finditer(chunk):
+        for m in COLOR_OPS.finditer(chunk):
             if m.group(1):
                 spaces["fill" if m.group(2) == b"cs" else "stroke"] = m.group(1).decode("latin-1")
                 continue
@@ -262,8 +256,8 @@ def colours(path, resources=None):
                 spaces[use] = "/DeviceGray"
             elif len(vals) > 4:
                 continue
-            found[(use, colour_label(spaces[use], vals, resources))] += 1
-    return [{"use": u, "colour": c, "count": n} for (u, c), n in found.most_common(12)]
+            found[(use, color_label(spaces[use], vals, resources))] += 1
+    return [{"use": u, "color": c, "count": n} for (u, c), n in found.most_common(12)]
 
 
 SPAN = re.compile(r'<span bbox="([\d.\- ]+)" font="([^"]*)" size="([\d.]+)">')
@@ -285,7 +279,7 @@ def text_layout(path, max_pages):
     page_extents = []
     for page_xml in res.stdout.split("<page>")[1:]:
         page_lines = defaultdict(list)
-        xs, ys = [], []
+        xs, tops, bases = [], [], []
         size = font = None
         for line in page_xml.splitlines():
             m = SPAN.search(line)
@@ -298,14 +292,14 @@ def text_layout(path, max_pages):
                 x0, y0, x1, _ = (float(v) for v in c.group(1).split())
                 ch = html.unescape(c.group(2))
                 page_lines[(round(y0), size)].append((x0, x1, ch))
-                top = y0 - size * 0.7
                 if ch.strip():
                     size_chars[size] += 1
                     font_by_size[size][font] += 1
                     xs += [x0, x1]
-                    ys.append(top)
+                    tops.append(y0 - size * 0.7)
+                    bases.append(y0)
         if xs:
-            page_extents.append((min(xs), max(xs), min(ys), max(ys)))
+            page_extents.append((min(xs), max(xs), min(tops), max(bases)))
         for (y, s), chars in page_lines.items():
             chars.sort()
             runs = [[chars[0]]]
@@ -363,7 +357,7 @@ def text_layout(path, max_pages):
             "right_max": max(e[1] for e in page_extents),
             "top_min": min(e[2] for e in page_extents),
             "bottom_max": max(e[3] for e in page_extents),
-            "note": "y is measured from the top of the MediaBox; top_min is the top of the highest glyph (baseline minus 0.7 em of its own size)",
+            "note": "y is measured from the top of the MediaBox; top_min is the top of the highest glyph (baseline minus 0.7 em of its own size); bottom_max is the lowest baseline",
         },
         "character_checks": chars,
         "pages_scanned": len(page_extents),
@@ -379,7 +373,7 @@ def medium_hint(s):
     if (s.get("output_intent") or {}).get("kind") == "PDF/X" or s.get("pdfx"):
         press.append("PDF/X output intent")
     if "/DeviceCMYK" in s.get("image_and_resource_colorspaces", {}):
-        press.append("CMYK colour")
+        press.append("CMYK color")
     fmt = (s["page_sizes"][0].get("format") or "") if s.get("page_sizes") else ""
     if press:
         return "press (" + ", ".join(press) + ")"
@@ -412,8 +406,8 @@ def main():
             "right": round(page["width_mm"] - mm(ext["right_max"] - off["left"]), 1),
             "note": "from the extremes of text on any page, so a short last page does not skew them; ignores images and rules",
         }
-    s["colour_operators"] = colours(args.pdf, s.pop("_cs_names", None))
-    if s["colour_operators"] and any(c["colour"].startswith("CMYK") for c in s["colour_operators"]):
+    s["color_operators"] = colors(args.pdf, s.pop("_cs_names", None))
+    if s["color_operators"] and any(c["color"].startswith("CMYK") for c in s["color_operators"]):
         s.setdefault("image_and_resource_colorspaces", {})["/DeviceCMYK"] = 1
     report = {"file": args.pdf, "medium_hint": medium_hint(s), "structure": s, "text": text}
     json.dump(report, sys.stdout, indent=2, ensure_ascii=False)
