@@ -335,7 +335,7 @@ async () => {
       opticalSizing: cs.fontOpticalSizing,
       color: fg ? hex(fg) : cs.color,
       background: hex(bg),
-      contrast: fg ? round(wcag, 2) : null,
+      contrast: fg ? Math.floor(wcag * 100) / 100 : null,
       wcagAA: fg ? wcag >= (size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700) ? 3 : 4.5) : null,
       apca: fg ? (() => {
         const lc = apcaLc(painted.fg, bg);

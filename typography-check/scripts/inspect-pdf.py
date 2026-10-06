@@ -61,16 +61,10 @@ def structure(path):
         return {"error": "qpdf not installed (brew install qpdf); structure, fonts and boxes skipped"}
     res = run(["qpdf", "--json=2", path])
     if isinstance(res, Exception) or not res.stdout:
-        res = run(["qpdf", "--json", path])
-    if isinstance(res, Exception) or not res.stdout:
         return {"error": f"qpdf failed: {getattr(res, 'stderr', res)}"}
     try:
         data = json.loads(res.stdout)
-        if isinstance(data.get("qpdf"), list):
-            meta, objs = data["qpdf"][0], data["qpdf"][1]
-        else:
-            meta, objs = data.get("parameters", {}), data["objects"]
-        return structure_from(data, meta, objs)
+        return structure_from(data, data["qpdf"][0], data["qpdf"][1])
     except (KeyError, IndexError, TypeError, ValueError, AttributeError) as exc:
         return {"error": f"qpdf JSON not understood ({type(exc).__name__}: {exc}); upgrade qpdf (brew upgrade qpdf). Structure, fonts and boxes skipped"}
 
@@ -202,7 +196,7 @@ def structure_from(data, meta, objs):
     return out
 
 
-COLOR_OPS = re.compile(rb"(?<![\w/.])(?:(/[^\s/\[\]()<>]+)\s+(cs|CS)|((?:-?[\d.]+\s+){1,4})(k|K|rg|RG|g|G|sc|scn|SC|SCN))(?![\w*'\"])")
+COLOR_OPS = re.compile(rb"(?<![\w/.])(?:(/[^\s/\[\]()<>]+)\s+(cs|CS)|((?:-?[\d.]+\s+){1,8})(k|K|rg|RG|g|G|sc|scn|SC|SCN))(?![\w*'\"])")
 DEVICE_BY_COUNT = {1: "/DeviceGray", 3: "/DeviceRGB", 4: "/DeviceCMYK"}
 
 
@@ -285,7 +279,7 @@ def text_layout(path, max_pages):
     page_extents = []
     for page_xml in res.stdout.split("<page>")[1:]:
         page_lines = defaultdict(list)
-        xs, ys = [], []
+        xs, tops, bases = [], [], []
         size = font = None
         for line in page_xml.splitlines():
             m = SPAN.search(line)
@@ -298,14 +292,14 @@ def text_layout(path, max_pages):
                 x0, y0, x1, _ = (float(v) for v in c.group(1).split())
                 ch = html.unescape(c.group(2))
                 page_lines[(round(y0), size)].append((x0, x1, ch))
-                top = y0 - size * 0.7
                 if ch.strip():
                     size_chars[size] += 1
                     font_by_size[size][font] += 1
                     xs += [x0, x1]
-                    ys.append(top)
+                    tops.append(y0 - size * 0.7)
+                    bases.append(y0)
         if xs:
-            page_extents.append((min(xs), max(xs), min(ys), max(ys)))
+            page_extents.append((min(xs), max(xs), min(tops), max(bases)))
         for (y, s), chars in page_lines.items():
             chars.sort()
             runs = [[chars[0]]]
@@ -363,7 +357,7 @@ def text_layout(path, max_pages):
             "right_max": max(e[1] for e in page_extents),
             "top_min": min(e[2] for e in page_extents),
             "bottom_max": max(e[3] for e in page_extents),
-            "note": "y is measured from the top of the MediaBox; top_min is the top of the highest glyph (baseline minus 0.7 em of its own size)",
+            "note": "y is measured from the top of the MediaBox; top_min is the top of the highest glyph (baseline minus 0.7 em of its own size); bottom_max is the lowest baseline",
         },
         "character_checks": chars,
         "pages_scanned": len(page_extents),

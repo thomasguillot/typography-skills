@@ -6,13 +6,14 @@ Run `python3 -I scripts/inspect-pdf.py FILE.pdf` first. It reports page boxes, f
 
 | Output | What it tells you |
 |---|---|
-| `medium_hint` | `press` when trim/bleed boxes, PDF/X or CMYK are present. `office/screen` otherwise. An office/screen PDF of a book or magazine page size is probably a proof that is not yet press-ready: ask. |
+| `medium_hint` | `press` when trim/bleed boxes, PDF/X or CMYK are present. `office/screen` otherwise. `structure.output_intent.kind` says whether an output intent is PDF/X or PDF/A; only PDF/X counts toward `pdf/pdfx`. An office/screen PDF of a book or magazine page size is probably a proof that is not yet press-ready: ask. |
 | `structure.fonts[].embedded` | `false` is P0: the PDF will substitute fonts on other machines (the classic "printed in Courier"). |
 | `structure.fonts[].name` | Compare with the intended faces. Times, Helvetica, Arial or DejaVu where a different face was specified means the source font never loaded and the renderer substituted: `print/rendered-font`, P0, and invisible in a code review. If you can't see the source, ask which face was intended rather than guess. |
-| `structure.color_operators` | RGB color, `(four-color gray/black)` or `(registration black)` in a press PDF is a production finding (`print/text-100k`) when it colors text. The counts cover fills and strokes, not only text, so confirm on a rendered page which ones set type. |
+| `structure.color_operators` | RGB color, `(four-color gray/black)` or `(registration black)` in a press PDF is a production finding (`print/text-100k`) when it colors text. The counts cover fills and strokes, not only text, so confirm on a rendered page which ones set type. The color space is tracked per content stream and ignores `q`/`Q`, so treat a label as a lead, not proof. |
 | `text.body_size_pt`, `body_leading_pt`, `body_chars_per_line_median_full_lines` | Check against `print/body-size`, `print/leading`, `print/measure`. These are measured, not guessed: prefer them to visual estimates. |
 | `text.sizes_pt_by_share`, `scale_ratios` | Check the scale and the smallest size (`print/small-sizes`). |
-| `text.text_block_margins_mm_approx` | Check `print/margin-hierarchy` (bottom largest). Approximate: derived from text extremes. |
+| `text.text_block_margins_mm_approx` | Check `print/margin-hierarchy` (bottom largest). Approximate: measured from the top of the highest glyph and the lowest baseline, inside the trim box. |
+| `text.rotated_pages_note` | Pages carry `/Rotate`, so leading, measure and margins are `null` or missing. Judge them from rendered pages instead. |
 | `text.character_checks` | Straight quotes, `--`, digit-hyphen-digit ranges: `shared/quotes`, `shared/dashes`. |
 | `text.error: no extractable text` | Text was outlined or rasterised: P1 (not searchable, not accessible, rendering of fine strokes changed) unless it is a logo. |
 

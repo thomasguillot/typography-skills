@@ -17,6 +17,8 @@ const [fgArg, bgArg] = args.filter((a, i) => !a.startsWith('--') && !['--size', 
 if (!fgArg || !bgArg) fail('Need a text and a background color.');
 const size = Number(flag('--size', 16));
 const weight = Number(flag('--weight', 400));
+if (!(size > 0)) fail('--size must be a positive number of pixels.');
+if (!(weight >= 1 && weight <= 1000)) fail('--weight must be a number from 1 to 1000.');
 const isBody = args.includes('--body');
 
 const NAMED = {
@@ -83,7 +85,7 @@ const fg = blend(parse(fgArg), bg);
 const l1 = luminance(fg) + 0.05;
 const l2 = luminance(bg) + 0.05;
 const rawRatio = Math.max(l1, l2) / Math.min(l1, l2);
-const ratio = round(rawRatio);
+const ratio = Math.floor(rawRatio * 100) / 100;
 const large = size >= 24 || (size >= 18.66 && weight >= 700);
 const lc = apcaLc(fg, bg);
 const required = apcaRequired();
