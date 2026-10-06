@@ -1,0 +1,48 @@
+---
+import '@fontsource-variable/schibsted-grotesk/wght.css';
+import fontUrl from '@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href={fontUrl} as="font" type="font/woff2" crossorigin />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta name="theme-color" content="#f7f5ef" />
+    <script is:inline>
+      try {
+        if (localStorage.getItem('grid') === 'on') document.documentElement.dataset.grid = 'on';
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="columns-overlay" aria-hidden="true">
+      <div class="page">
+        <div class="grid">
+          {Array.from({ length: 12 }, () => <span />)}
+        </div>
+      </div>
+    </div>
+    <slot />
+    <div class="baseline-overlay" aria-hidden="true"></div>
+  </body>
+</html>

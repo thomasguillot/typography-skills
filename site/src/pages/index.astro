@@ -1,0 +1,917 @@
+---
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Command from '../components/Command.astro';
+
+const repo = 'https://github.com/thomasguillot/typography-skills';
+
+const specimen =
+  'The storm had been building since noon. By the time Elias climbed the ninety-two steps to the lamp room, the sea below was a churning field of white, and the wind threw rain against the glass in long, hissing sheets. He checked the wick, trimmed it, and settled into the chair he had sat in for twenty-three years.';
+
+const habits = [
+  ['Body text at 16px or more, in rem', 'Points are correct. Book text runs 9.5 to 11.5pt; 16px is 12pt, large on paper.'],
+  ['Unitless line-height', 'Leading is absolute, 10.5 on 14pt, and it sets the baseline grid.'],
+  ['Avoid justified text', 'Justified with hyphenation is the book default. Flag it only without hyphens.'],
+  ['A soft near-black for comfort', 'Body text is 100% black ink. A gray prints as a tint or a four-color mix.'],
+  ['A good fallback font stack', 'There is no fallback. A missing font prints in the wrong face.'],
+];
+
+const families = [
+  { count: 24, name: 'Shared', scope: 'Hierarchy, proximity, paragraphs, true italics and bolds, quotes and dashes, tracking, figures.' },
+  { count: 33, name: 'Web', scope: 'Units, leading, measure, font loading, rendered fonts, WCAG and APCA contrast, dark mode, links.' },
+  { count: 37, name: 'Print', scope: 'Page format and margins, baseline grid, size and leading, justification, print stylesheets, ink and bleed.' },
+  { count: 8, name: 'PDF', scope: 'PDF/X, trim and bleed boxes, font embedding, tagging for screen readers.' },
+];
+
+const tools = [
+  {
+    file: 'extract-web-type.js',
+    reads: 'Runs inside the page.',
+    body: 'Returns the face that actually rendered, sizes, leading ratios, characters per line, and WCAG and APCA contrast for every text role, in every color scheme.',
+  },
+  {
+    file: 'inspect-pdf.py',
+    reads: 'Reads the file, not a picture of it.',
+    body: 'Page boxes, embedded fonts, PDF/X intent, color operators, body size, leading and measure. It caught Minion Pro silently replaced by Times, and #333 text that would print as a four-color gray.',
+  },
+  {
+    file: 'contrast.mjs',
+    reads: 'For reviews without a browser.',
+    body: 'WCAG 2 ratio and APCA Lc for any pair of colors, with thresholds that scale with size and weight.',
+  },
+];
+---
+
+<Base
+  title="typography-check: a typography review skill for coding agents"
+  description="An agent skill that checks the typography of web pages, stylesheets, print layouts and PDFs. It works out the medium first, measures what renders, and reports what to fix."
+>
+  <header class="masthead page">
+    <div class="grid masthead__bar">
+      <p class="wordmark">typography-check</p>
+      <nav class="masthead__nav" aria-label="Site">
+        <p class="masthead__links"><button type="button" class="grid-toggle no-print" aria-pressed="false" data-grid-toggle>Show grid</button><a href={repo}>GitHub</a></p>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero page" aria-labelledby="hero-title">
+      <div class="grid">
+        <h1 id="hero-title" class="hero__title">
+          Type has rules. <span class="hero__accent">Web has some, print has others.</span>
+        </h1>
+        <p class="hero__lede">
+          An agent skill that reviews the typography of web pages, stylesheets, print layouts and PDFs. It works out the medium first, measures what actually renders, and reports what to fix.
+        </p>
+        <div class="hero__action">
+          <a class="button" href={repo}>Get it on GitHub</a>
+          <p class="label">Works with Claude Code and any agent that reads SKILL.md.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section page" aria-labelledby="medium">
+      <SectionHead number="01" id="medium" title="The medium decides the rules">
+        <p>Ten-point justified text with fixed leading is right in a book and wrong on a web page. The skill identifies the medium before it judges anything.</p>
+      </SectionHead>
+
+      <div class="grid specimens">
+        <figure class="specimen specimen--web">
+          <figcaption>
+            <p class="specimen__title">Web</p>
+            <dl class="specs">
+              <div><dt>Size</dt><dd>18px</dd></div>
+              <div><dt>Line height</dt><dd>1.5, a 27px baseline</dd></div>
+              <div><dt>Measure</dt><dd>65ch maximum</dd></div>
+              <div><dt>Setting</dt><dd>Ragged right</dd></div>
+            </dl>
+          </figcaption>
+          <div class="specimen__surface">
+            <p lang="en">{specimen}</p>
+          </div>
+        </figure>
+
+        <figure class="specimen specimen--print">
+          <figcaption>
+            <p class="specimen__title">Print</p>
+            <dl class="specs">
+              <div><dt>Size</dt><dd>10pt</dd></div>
+              <div><dt>Leading</dt><dd>13pt, absolute</dd></div>
+              <div><dt>Page</dt><dd>129 × 198mm</dd></div>
+              <div><dt>Setting</dt><dd>Justified, hyphenated</dd></div>
+            </dl>
+          </figcaption>
+          <div class="specimen__surface">
+            <div class="page-sheet">
+              <p lang="en">{specimen}</p>
+            </div>
+          </div>
+        </figure>
+      </div>
+
+      <div class="grid habits">
+        <h3 class="habits__title">Web habits that are wrong in print</h3>
+        <table class="habits__table">
+          <thead>
+            <tr><th scope="col">On the web</th><th scope="col">On paper</th></tr>
+          </thead>
+          <tbody>
+            {habits.map(([web, print]) => (
+              <tr><th scope="row">{web}</th><td>{print}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section page" aria-labelledby="checks">
+      <SectionHead number="02" id="checks" title="102 rules, in four families">
+        <p>Each rule has an ID, a threshold, a fix and a severity, paraphrased from the Typography Handbook’s web and print editions.</p>
+      </SectionHead>
+
+      <ol class="families grid" role="list">
+        {families.map((family) => (
+          <li class="family">
+            <p class="family__count" aria-hidden="true">{family.count}</p>
+            <h3 class="family__name">{family.name} <span class="visually-hidden">({family.count} rules)</span></h3>
+            <p class="family__scope">{family.scope}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="section page" aria-labelledby="report">
+      <SectionHead number="03" id="report" title="A report you can act on">
+        <p>Every finding names the rule, the place, the measured value and the fix. Severity comes from the rule, not from mood.</p>
+      </SectionHead>
+
+      <div class="grid">
+        <figure class="report">
+          <div class="report__doc">
+            <p class="report__heading">Typography check: Tidewater landing page</p>
+            <p class="report__meta">Medium: web, from a URL with a viewport meta and woff2 fonts. Measured in the page at 1280px and 375px, light and dark.</p>
+
+            <p class="report__severity"><span class="sev sev--p0">P0</span> Broken</p>
+            <ul class="findings">
+              <li><code>web/rendered-font</code> All four Satoshi files return 404, so every role renders in the browser default face.</li>
+              <li><code>web/leading-overlap</code> <span class="where">h1</span> Line height 22px on 72px type, a ratio of 0.31. Wrapped lines overlap. Fix: <code>line-height: 1.1</code>.</li>
+              <li><code>web/zoom</code> <span class="where">viewport</span> <code>user-scalable=no</code> blocks pinch zoom.</li>
+            </ul>
+
+            <p class="report__severity"><span class="sev sev--p1">P1</span> Readability and accessibility</p>
+            <ul class="findings">
+              <li><code>web/contrast</code> <span class="where">.feature p</span> #9a9a9a on white is 2.81:1, below AA. APCA gives Lc 54 against the 90 it needs at 14px.</li>
+              <li><code>web/contrast</code> <span class="where">links, dark mode</span> #0a66ff on black is 4.36:1. The same link passes in light mode.</li>
+              <li><code>web/measure</code> <span class="where">.story p</span> About 162 characters per line at 1280px, against 45 to 75.</li>
+              <li><code>web/one-family-name</code> Each weight is its own family, so headings get a synthesized bold.</li>
+            </ul>
+            <p class="report__more">Then ten numbered craft findings, and one line for the rest.</p>
+          </div>
+          <figcaption class="label">Excerpt from a check of a test landing page built with deliberate faults.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section page" aria-labelledby="measured">
+      <SectionHead number="04" id="measured" title="Measured, not guessed">
+        <p>Declared is not rendered. Three small scripts report what the reader actually gets.</p>
+      </SectionHead>
+
+      <div class="grid tools">
+        {tools.map((tool) => (
+          <article class="tool">
+            <h3 class="tool__file"><code>{tool.file}</code></h3>
+            <p class="tool__reads">{tool.reads}</p>
+            <p class="tool__body">{tool.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="section page" aria-labelledby="contrast">
+      <SectionHead number="05" id="contrast" title="Two contrast models, both reported">
+        <p>WCAG 2 is the compliance check. APCA, proposed for WCAG 3, accounts for size, weight and polarity.</p>
+      </SectionHead>
+
+      <div class="grid contrast">
+        <figure class="swatch">
+          <div class="swatch__sample">
+            <p class="swatch__big" aria-hidden="true">Aa</p>
+            <p class="swatch__text">Gray body text at 15 pixels, regular weight, on white.</p>
+          </div>
+          <figcaption class="label">#767676 on #ffffff, 15px, weight 400.</figcaption>
+        </figure>
+
+        <dl class="verdicts">
+          <div class="verdict">
+            <dt>WCAG 2</dt>
+            <dd><p class="verdict__value">4.54:1</p><p>Passes AA, which needs 4.5.</p></dd>
+          </div>
+          <div class="verdict">
+            <dt>APCA</dt>
+            <dd><p class="verdict__value">Lc 71.6</p><p>Fails. Body text this small needs 90.</p></dd>
+          </div>
+          <p class="verdicts__note">When the two disagree, the report says so and gives both numbers. APCA usually points to the better fix: more size, more weight or more contrast.</p>
+        </dl>
+      </div>
+    </section>
+
+    <section class="section page" aria-labelledby="install">
+      <SectionHead number="06" id="install" title="Install">
+        <p>Plain files: a SKILL.md, four rule references and three scripts. MIT licensed.</p>
+      </SectionHead>
+
+      <ol class="steps grid" role="list">
+        <li class="step">
+          <Command label="Clone the repository" command={`git clone ${repo}.git`} />
+        </li>
+        <li class="step">
+          <Command label="Link the skill into your agent’s skills folder" command={'ln -s "$PWD/typography-skills/typography-check" ~/.claude/skills/typography-check'} />
+        </li>
+        <li class="step">
+          <Command label="For PDFs, install qpdf and Ghostscript" command="brew install qpdf ghostscript" />
+        </li>
+        <li class="step">
+          <p class="step__label"><span class="step__text">Ask your agent</span></p>
+          <p class="step__ask">“Check the typography of https://example.com”, or point it at a folder of CSS, a print stylesheet or a PDF.</p>
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="footer page">
+    <div class="grid">
+      <div class="footer__credits">
+        <h2 class="footer__title">Sources and credits</h2>
+        <ul role="list">
+          <li>Rules paraphrased from the <a href="https://typographyhandbook.com">Typography Handbook</a> and its <a href="https://typographyhandbook.com/print/">print edition</a>, based on Kenneth Wang’s original, MIT license.</li>
+          <li>Report format adapted from <a href="https://github.com/mblode/agent-skills">mblode/agent-skills</a>, MIT license.</li>
+          <li>APCA constants from the APCA-W3 0.0.98G reference.</li>
+        </ul>
+      </div>
+      <p class="footer__colophon label">Set in Schibsted Grotesk on a twelve-column grid. MIT license. <a href={repo}>Source on GitHub</a>.</p>
+    </div>
+  </footer>
+
+  <p class="visually-hidden" aria-live="polite" data-status></p>
+</Base>
+
+<script>
+  const status = document.querySelector<HTMLElement>('[data-status]');
+  const announce = (message: string) => {
+    if (status) status.textContent = message;
+  };
+
+  const toggle = document.querySelector<HTMLButtonElement>('[data-grid-toggle]');
+  const syncToggle = () => {
+    const on = document.documentElement.dataset.grid === 'on';
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(on));
+      toggle.textContent = on ? 'Hide grid' : 'Show grid';
+    }
+  };
+  syncToggle();
+  toggle?.addEventListener('click', () => {
+    const on = document.documentElement.dataset.grid !== 'on';
+    if (on) document.documentElement.dataset.grid = 'on';
+    else delete document.documentElement.dataset.grid;
+    try {
+      localStorage.setItem('grid', on ? 'on' : 'off');
+    } catch {}
+    syncToggle();
+    announce(on ? 'Grid shown' : 'Grid hidden');
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((button) => {
+    const label = button.querySelector<HTMLElement>('[data-copy-label]');
+    const setLabel = (text: string) => {
+      if (label) label.textContent = text;
+    };
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+        setLabel('Copied');
+        button.dataset.state = 'copied';
+        announce('Command copied');
+      } catch {
+        setLabel('Select');
+        announce('Copy failed. Select the command and copy it manually.');
+      }
+      window.setTimeout(() => {
+        setLabel('Copy');
+        delete button.dataset.state;
+      }, 2000);
+    });
+  });
+</script>
+
+<style>
+  .masthead__bar {
+    align-items: start;
+    padding-block: var(--line);
+    box-shadow: inset 0 -1px 0 var(--ink);
+  }
+
+  .wordmark {
+    grid-column: 1 / span 6;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead__nav {
+    grid-column: 7 / -1;
+  }
+
+  .masthead__links {
+    text-align: end;
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+
+  .masthead__links a {
+    margin-inline-start: var(--space-lg);
+  }
+
+  .grid-toggle {
+    position: relative;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cobalt);
+    font: inherit;
+    line-height: inherit;
+    cursor: pointer;
+  }
+
+  .grid-toggle::after {
+    content: "";
+    position: absolute;
+    inset: -0.75rem -0.5rem;
+  }
+
+  .grid-toggle[aria-pressed="true"] {
+    text-decoration: underline;
+    text-decoration-thickness: 0.1em;
+    text-underline-offset: 0.2em;
+  }
+
+  .hero {
+    padding-block: var(--space-xl) var(--space-2xl);
+  }
+
+  .hero .grid {
+    row-gap: var(--space-xl);
+  }
+
+  .hero__title {
+    grid-column: 1 / span 11;
+    font-size: var(--display);
+    font-weight: 800;
+    --lh: var(--lh-big);
+    letter-spacing: -0.045em;
+  }
+
+  .hero__accent {
+    color: var(--cobalt);
+  }
+
+  .hero__lede {
+    grid-column: 1 / span 6;
+    font-size: var(--step-lede);
+    max-width: 24em;
+  }
+
+  .hero__action {
+    grid-column: 8 / span 5;
+    align-self: end;
+    display: grid;
+    gap: var(--space-sm);
+    justify-items: start;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: calc(var(--line) * 2);
+    padding-inline: var(--inset);
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 700;
+    text-decoration: none;
+    transition:
+      background-color 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .button:hover {
+      background: var(--cobalt);
+    }
+  }
+
+  .button:active {
+    transform: scale(0.97);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .button {
+      transition: background-color 160ms var(--ease-out);
+    }
+
+    .button:active {
+      transform: none;
+    }
+  }
+
+  .section,
+  .footer {
+    background: linear-gradient(var(--ink), var(--ink)) center top / calc(100% - 2 * var(--margin)) 1px no-repeat;
+  }
+
+  .section {
+    padding-block: var(--space-xl) var(--space-2xl);
+  }
+
+  .specimens {
+    row-gap: var(--space-xl);
+  }
+
+  .specimen {
+    display: grid;
+    align-content: start;
+    gap: var(--space-md);
+  }
+
+  .specimen--web {
+    grid-column: 1 / span 6;
+  }
+
+  .specimen--print {
+    grid-column: 7 / span 6;
+  }
+
+  .specimen__surface {
+    padding: var(--space-lg) var(--inset);
+    background: var(--wash);
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+
+  .specimen--web .specimen__surface p {
+    max-width: 30em;
+  }
+
+  .specimen--print .specimen__surface {
+    container-type: inline-size;
+    display: grid;
+    justify-items: center;
+  }
+
+  .page-sheet {
+    --sheet: min(100cqi, 19rem);
+    width: var(--sheet);
+    height: round(up, calc(var(--sheet) * 198 / 129), var(--line));
+    padding: 12% 11% 0;
+    background: oklch(99% 0.004 90);
+    box-shadow:
+      inset 0 0 0 1px var(--rule),
+      0 1px 2px oklch(21% 0.012 285 / 0.08);
+  }
+
+  .page-sheet p {
+    top: 0;
+    font-size: 10pt;
+    line-height: 13pt;
+    text-align: justify;
+    hyphens: auto;
+    text-wrap: wrap;
+    color: #000;
+  }
+
+  .specimen__title {
+    font-size: var(--step-1);
+    font-weight: 700;
+    --lh: var(--lh-big);
+    margin-block-end: var(--space-xs);
+  }
+
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-xs) var(--gutter);
+    font-size: var(--step--1);
+  }
+
+  .specs dt {
+    color: var(--ink-muted);
+  }
+
+  .specs dd {
+    font-weight: 600;
+  }
+
+  .habits {
+    margin-block-start: var(--space-xl);
+    row-gap: var(--space-md);
+  }
+
+  .habits__title {
+    grid-column: 1 / span 3;
+    font-size: var(--step-1);
+    --lh: var(--lh-big);
+    max-width: 14ch;
+  }
+
+  .habits__table {
+    grid-column: 4 / span 9;
+    border-collapse: collapse;
+  }
+
+  .habits__table th,
+  .habits__table td {
+    top: 0;
+    padding: var(--nudge) var(--gutter) calc(var(--line) - var(--nudge)) 0;
+    box-shadow: inset 0 1px 0 var(--rule);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .habits__table thead th {
+    box-shadow: none;
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--ink-muted);
+  }
+
+  .habits__table tbody th {
+    width: 38%;
+    font-weight: 600;
+  }
+
+  .families {
+    list-style: none;
+    padding: 0;
+    row-gap: var(--space-xl);
+  }
+
+  .family,
+  .tool,
+  .verdict {
+    padding-block-start: var(--space-sm);
+    background: linear-gradient(var(--ink), var(--ink)) left top / 100% 2px no-repeat;
+  }
+
+  .family {
+    grid-column: span 3;
+    display: grid;
+    align-content: start;
+    gap: var(--space-xs);
+  }
+
+  .family__count {
+    margin-block-end: var(--line);
+    font-size: var(--step-3);
+    font-weight: 800;
+    --lh: var(--lh-big);
+    letter-spacing: -0.03em;
+    color: var(--cobalt);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .family__name {
+    font-size: var(--step-1);
+    --lh: var(--lh-big);
+  }
+
+  .family__scope {
+    max-width: 17em;
+  }
+
+  .report {
+    grid-column: 4 / span 9;
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .report__doc {
+    padding: var(--space-lg) var(--inset);
+    background: var(--wash);
+    box-shadow: inset 0 0 0 1px var(--rule);
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .report__heading {
+    font-size: var(--step-1);
+    font-weight: 700;
+    --lh: var(--lh-big);
+  }
+
+  .report__meta {
+    color: var(--ink-muted);
+    max-width: 32em;
+  }
+
+  .report__severity {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    font-weight: 700;
+    top: 0;
+    padding-block-start: calc(var(--line) + var(--nudge));
+    margin-block-end: calc(-1 * var(--nudge));
+    box-shadow: inset 0 1px 0 var(--rule);
+  }
+
+  .sev {
+    display: inline-block;
+    min-width: 2.25em;
+    padding-inline: 0.4em;
+    font-size: var(--step--1);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .sev--p0 {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .sev--p1 {
+    background: var(--cobalt);
+    color: var(--paper);
+  }
+
+  .findings {
+    display: grid;
+    gap: var(--space-sm);
+    padding-inline-start: 0;
+    list-style: none;
+    max-width: 32em;
+  }
+
+  .findings code {
+    color: var(--cobalt);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .where {
+    font-weight: 600;
+  }
+
+  .report__more {
+    color: var(--ink-muted);
+  }
+
+  .tools {
+    row-gap: var(--space-xl);
+  }
+
+  .tool {
+    grid-column: span 4;
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+  }
+
+  .tool__file {
+    font-size: var(--step-0);
+  }
+
+  .tool__file code {
+    font-size: 1em;
+    color: var(--cobalt);
+  }
+
+  .tool__reads {
+    font-size: var(--step-1);
+    font-weight: 700;
+    --lh: var(--lh-big);
+  }
+
+  .tool__body {
+    max-width: 20em;
+  }
+
+  .contrast {
+    row-gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .swatch {
+    grid-column: 1 / span 6;
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .swatch__sample {
+    padding: var(--space-lg) var(--inset);
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px var(--rule);
+    color: #767676;
+  }
+
+  .swatch__big {
+    font-size: clamp(5rem, 3rem + 8vw, 10rem);
+    font-weight: 400;
+    --lh: var(--lh-big);
+    letter-spacing: -0.04em;
+  }
+
+  .swatch__text {
+    font-size: 0.9375rem;
+    font-weight: 400;
+    margin-block-start: var(--space-md);
+  }
+
+  .verdicts {
+    grid-column: 8 / span 5;
+    display: grid;
+    gap: var(--space-lg);
+  }
+
+  .verdict {
+    display: grid;
+  }
+
+  .verdict dt {
+    font-weight: 700;
+  }
+
+  .verdict__value {
+    font-size: var(--step-3);
+    font-weight: 800;
+    --lh: var(--lh-big);
+    letter-spacing: -0.02em;
+  }
+
+  .verdicts__note {
+    color: var(--ink-muted);
+    max-width: 22em;
+  }
+
+  .steps {
+    list-style: none;
+    padding: 0;
+    row-gap: var(--line);
+    counter-reset: step;
+  }
+
+  .step {
+    grid-column: 4 / span 9;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding-block-start: var(--line);
+    background: linear-gradient(var(--ink), var(--ink)) left top / 100% 1px no-repeat;
+    counter-increment: step;
+  }
+
+  .step :global(.step__label) {
+    font-weight: 700;
+  }
+
+  .step :global(.step__text)::before {
+    content: counter(step) ". ";
+    color: var(--cobalt);
+  }
+
+  .step__ask {
+    max-width: 32em;
+  }
+
+  .footer {
+    padding-block: var(--space-xl);
+  }
+
+  .footer .grid {
+    row-gap: var(--space-lg);
+  }
+
+  .footer__credits {
+    grid-column: 1 / span 8;
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .footer__title {
+    font-size: var(--step-0);
+  }
+
+  .footer__credits ul {
+    display: grid;
+    gap: var(--space-xs);
+    padding: 0;
+    list-style: none;
+    font-size: var(--step--1);
+    max-width: 32em;
+  }
+
+  .footer__colophon {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 64rem) {
+    .family {
+      grid-column: span 6;
+    }
+
+    .tool {
+      grid-column: 1 / -1;
+    }
+
+    .tool__body {
+      max-width: 32em;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .wordmark,
+    .masthead__nav,
+    .hero__title,
+    .hero__lede,
+    .hero__action,
+    .specimen--web,
+    .specimen--print,
+    .habits__title,
+    .habits__table,
+    .family,
+    .report,
+    .swatch,
+    .verdicts,
+    .step,
+    .footer__credits {
+      grid-column: 1 / -1;
+    }
+
+    .masthead__links {
+      text-align: start;
+    }
+
+    .habits__title {
+      max-width: none;
+    }
+
+    .habits__table tbody th {
+      width: 45%;
+    }
+
+    .specimen--print .specimen__surface {
+      padding-inline: var(--space-sm);
+    }
+
+    .page-sheet {
+      --sheet: min(100cqi, 20rem);
+    }
+  }
+
+  @media print {
+    .hero {
+      padding-block: 0 var(--space-xl);
+    }
+
+    .hero__title,
+    .hero__lede,
+    .hero__action,
+    .specimen--web,
+    .specimen--print,
+    .habits__title,
+    .habits__table,
+    .report,
+    .swatch,
+    .verdicts,
+    .step,
+    .footer__credits,
+    .family,
+    .tool {
+      grid-column: 1 / -1;
+    }
+
+    .specimen__surface,
+    .report__doc,
+    .swatch__sample {
+      background: none;
+    }
+
+    .button {
+      background: none;
+      color: #000;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    .sev--p0,
+    .sev--p1 {
+      background: none;
+      color: #000;
+      box-shadow: inset 0 0 0 1pt #000;
+    }
+
+    .section {
+      padding-block: var(--space-xl);
+    }
+  }
+</style>
