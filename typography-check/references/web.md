@@ -48,6 +48,7 @@ Applies to HTML/CSS/JSX, design tokens and live pages. Not to `@media print` blo
 |---|---|---|---|
 | `web/opentype-properties` | Uses `font-kerning` and `font-variant-*` in preference to `font-feature-settings` (they cascade and combine; `font-feature-settings` overrides wholesale). | Swap to the high-level properties. | P3 |
 | `web/optical-sizing` | `font-optical-sizing: auto` is not disabled where the font has an `opsz` axis. | Remove `font-optical-sizing: none`. | P3 |
+| `web/hanging-punctuation` | Opening quotes on blockquotes, pull quotes and display headings hang outside the text edge, so the letters align with the text around them. At body size the indent is slight; at display sizes it is obvious. | `hanging-punctuation: first` (Safari; check support elsewhere), plus a negative `text-indent` equal to the quote's width (about `-0.4em`, measure the face) on elements that start with a quote. | P2 at display sizes, P3 otherwise |
 | `web/text-wrap` | `text-wrap: balance` on headings, captions and pull quotes only (it stops working past ~6 lines in Chromium, ~10 in Firefox, and is costly). `text-wrap: pretty` on paragraphs and list items. Balance on a paragraph is a misuse. | Move `balance` to headings; use `pretty` for body. | P3 |
 
 ## Colour and contrast
