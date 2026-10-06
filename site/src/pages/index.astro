@@ -8,6 +8,38 @@ const repo = 'https://github.com/thomasguillot/typography-skills';
 const specimen =
   'The storm had been building since noon. By the time Elias climbed the ninety-two steps to the lamp room, the sea below was a churning field of white, and the wind threw rain against the glass in long, hissing sheets. He checked the wick, trimmed it, and settled into the chair he had sat in for twenty-three years.';
 
+const contexts = [
+  ['Dense product UI, dashboards, data tables', 'Major second 1.125 to minor third 1.2', 'Many levels in little space; weight and color carry hierarchy.'],
+  ['Docs, long-form reading, most websites', 'Major third 1.25', 'Clear headings without shouting.'],
+  ['Editorial, marketing, landing pages', 'Perfect fourth 1.333', 'Strong contrast, room for display sizes.'],
+  ['Posters, portfolios, display-led brands', 'Perfect fifth 1.5 or golden 1.618', 'Dramatic jumps, so fewer steps. They outgrow small screens fast.'],
+  ['Books and long print documents', 'Minor third 1.2', 'Text-led; headings stay near the body.'],
+];
+
+const compare = [
+  ['5xl', '68.66', '100.98', '322.96'],
+  ['4xl', '54.93', '75.76', '199.6'],
+  ['3xl', '43.95', '56.83', '123.36'],
+  ['2xl', '35.16', '42.63', '76.24'],
+  ['xl', '28.13', '31.98', '47.12'],
+  ['lg', '22.5', '23.99', '29.12'],
+  ['base', '18', '18', '18'],
+  ['sm', '16', '16', '16'],
+  ['xs', '14.22', '14.22', '14.22'],
+];
+
+const gridScale = [
+  ['5xl', '100.98', '108', 'Display'],
+  ['4xl', '75.76', '81', 'h1'],
+  ['3xl', '56.83', '67.5, half line', 'h2'],
+  ['2xl', '42.63', '54', 'h3'],
+  ['xl', '31.98', '40.5, half line', 'h4'],
+  ['lg', '23.99', '27', 'h5, lede'],
+  ['base', '18', '27', 'h6, body'],
+  ['sm', '16', '27', 'Small'],
+  ['xs', '14.22', '27', 'Label'],
+];
+
 const habits = [
   ['Body text at 16px or more, in rem', 'Points are correct. Book text runs 9.5 to 11.5pt; 16px is 12pt, large on paper.'],
   ['Unitless line-height', 'Leading is absolute, 10.5 on 14pt, and it sets the baseline grid.'],
@@ -43,12 +75,12 @@ const tools = [
 ---
 
 <Base
-  title="typography-check: a typography review skill for coding agents"
-  description="An agent skill that checks the typography of web pages, stylesheets, print layouts and PDFs. It works out the medium first, measures what renders, and reports what to fix."
+  title="typography-skills: typography review and type scales for coding agents"
+  description="Two agent skills for typography. typography-check reviews web pages, stylesheets, print layouts and PDFs. typography-scale builds a type scale for what you are making, snapped to a baseline grid."
 >
   <header class="masthead page">
     <div class="grid masthead__bar">
-      <p class="wordmark">typography-check</p>
+      <p class="wordmark">typography-skills</p>
       <nav class="masthead__nav" aria-label="Site">
         <p class="masthead__links"><button type="button" class="grid-toggle no-print" aria-pressed="false" data-grid-toggle>Show grid</button><a href={repo}>GitHub</a></p>
       </nav>
@@ -62,10 +94,10 @@ const tools = [
           Type has rules. <span class="hero__accent">Web has some, print has others.</span>
         </h1>
         <p class="hero__lede">
-          An agent skill that reviews the typography of web pages, stylesheets, print layouts and PDFs. It works out the medium first, measures what actually renders, and reports what to fix.
+          Two agent skills for typography. <strong>typography-check</strong> reviews web pages, stylesheets, print layouts and PDFs, measuring what actually renders. <strong>typography-scale</strong> builds a type scale for what you are making, snapped to a baseline grid.
         </p>
         <div class="hero__action">
-          <a class="button" href={repo}>Get it on GitHub</a>
+          <a class="button" href={repo}>Get them on GitHub</a>
           <p class="label">Works with Claude Code and any agent that reads SKILL.md.</p>
         </div>
       </div>
@@ -73,7 +105,7 @@ const tools = [
 
     <section class="section page" aria-labelledby="medium">
       <SectionHead number="01" id="medium" title="The medium decides the rules">
-        <p>Ten-point justified text with fixed leading is right in a book and wrong on a web page. The skill identifies the medium before it judges anything.</p>
+        <p>Ten-point justified text with fixed leading is right in a book and wrong on a web page. typography-check identifies the medium before it judges anything.</p>
       </SectionHead>
 
       <div class="grid specimens">
@@ -110,9 +142,9 @@ const tools = [
         </figure>
       </div>
 
-      <div class="grid habits">
-        <h3 class="habits__title">Web habits that are wrong in print</h3>
-        <table class="habits__table">
+      <div class="grid data">
+        <h3 class="data__title">Web habits that are wrong in print</h3>
+        <table class="data__table">
           <thead>
             <tr><th scope="col">On the web</th><th scope="col">On paper</th></tr>
           </thead>
@@ -217,9 +249,65 @@ const tools = [
       </div>
     </section>
 
+    <section class="section page" aria-labelledby="scale">
+      <SectionHead number="06" id="scale" title="A scale chosen for the context">
+        <p>typography-scale asks what you are making, proposes two or three ratios, and shows them side by side before it generates anything.</p>
+      </SectionHead>
+
+      <div class="grid data">
+        <h3 class="data__title">Context and ratio</h3>
+        <table class="data__table">
+          <thead>
+            <tr><th scope="col">Making</th><th scope="col">Ratio</th><th scope="col">Why</th></tr>
+          </thead>
+          <tbody>
+            {contexts.map(([making, ratio, why]) => (
+              <tr><th scope="row">{making}</th><td>{ratio}</td><td>{why}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid data">
+        <h3 class="data__title">Same 18px body, three ratios</h3>
+        <table class="data__table data__table--numbers">
+          <thead>
+            <tr><th scope="col">Step</th><th scope="col">Major third 1.25</th><th scope="col">Perfect fourth 1.333</th><th scope="col">Golden 1.618</th></tr>
+          </thead>
+          <tbody>
+            {compare.map(([step, a, b, c]) => (
+              <tr><th scope="row">{step}</th><td>{a}px</td><td>{b}px</td><td>{c}px</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="data__note">Golden reaches 323px by 5xl, so the skill suggests fewer steps for it. Steps below the body use a gentler 1.125, so small text stays readable.</p>
+      </div>
+    </section>
+
+    <section class="section page" aria-labelledby="grid-scale">
+      <SectionHead number="07" id="grid-scale" title="Leading on the grid">
+        <p>Sizes come from the ratio. Leading rounds to whole lines of the baseline grid, or to half lines where a whole line would be loose.</p>
+      </SectionHead>
+
+      <div class="grid data">
+        <h3 class="data__title">Perfect fourth on a 27px grid</h3>
+        <table class="data__table data__table--numbers">
+          <thead>
+            <tr><th scope="col">Step</th><th scope="col">Size</th><th scope="col">Leading</th><th scope="col">Role</th></tr>
+          </thead>
+          <tbody>
+            {gridScale.map(([step, size, leading, role]) => (
+              <tr><th scope="row">{step}</th><td>{size}px</td><td>{leading.replace(/^([\d.]+)/, '$1px')}</td><td>{role}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="data__note">The same scale comes out as CSS custom properties, JSON design tokens, Tailwind theme values, or a print spec such as body 10.5/14pt. The 27px grid is the one this page is set on.</p>
+      </div>
+    </section>
+
     <section class="section page" aria-labelledby="install">
-      <SectionHead number="06" id="install" title="Install">
-        <p>Plain files: a SKILL.md, four rule references and three scripts. MIT licensed.</p>
+      <SectionHead number="08" id="install" title="Install">
+        <p>Plain files: two SKILL.md files, rule references and four scripts. MIT licensed.</p>
       </SectionHead>
 
       <ol class="steps grid" role="list">
@@ -227,7 +315,7 @@ const tools = [
           <Command label="Clone the repository" command={`git clone ${repo}.git`} />
         </li>
         <li class="step">
-          <Command label="Link the skill into your agent’s skills folder" command={'ln -s "$PWD/typography-skills/typography-check" ~/.claude/skills/typography-check'} />
+          <Command label="Link both skills into your agent’s skills folder" command={'ln -s "$PWD/typography-skills/typography-check" "$PWD/typography-skills/typography-scale" ~/.claude/skills/'} />
         </li>
         <li class="step">
           <Command label="For PDFs, install qpdf and Ghostscript" command="brew install qpdf ghostscript" />
@@ -235,6 +323,7 @@ const tools = [
         <li class="step">
           <p class="step__label"><span class="step__text">Ask your agent</span></p>
           <p class="step__ask">“Check the typography of https://example.com”, or point it at a folder of CSS, a print stylesheet or a PDF.</p>
+          <p class="step__ask">“Make a type scale for a docs site with an 18px body”, or for a book, a dashboard or a landing page.</p>
         </li>
       </ol>
     </section>
@@ -510,40 +599,55 @@ const tools = [
     font-weight: 600;
   }
 
-  .habits {
+  .data {
     margin-block-start: var(--space-xl);
     row-gap: var(--space-md);
   }
 
-  .habits__title {
+  .data__title {
     grid-column: 1 / span 3;
     font-size: var(--step-1);
     --lh: var(--lh-big);
     max-width: 14ch;
   }
 
-  .habits__table {
+  .data__table {
     grid-column: 4 / span 9;
     border-collapse: collapse;
   }
 
-  .habits__table th,
-  .habits__table td {
+  .data__table th,
+  .data__table td {
+    --nudge-px: round(nearest, var(--nudge), 1px);
     top: 0;
-    padding: var(--nudge) var(--gutter) calc(var(--line) - var(--nudge)) 0;
+    padding: var(--nudge-px) var(--gutter) calc(var(--line) - var(--nudge-px)) 0;
     box-shadow: inset 0 1px 0 var(--rule);
     text-align: start;
     vertical-align: top;
   }
 
-  .habits__table thead th {
+  .data__table thead th {
     box-shadow: none;
     font-size: var(--step--1);
     font-weight: 600;
     color: var(--ink-muted);
   }
 
-  .habits__table tbody th {
+  .data + .data {
+    margin-block-start: var(--space-xl);
+  }
+
+  .data__table--numbers tbody th {
+    width: auto;
+  }
+
+  .data__note {
+    grid-column: 4 / span 7;
+    max-width: 32em;
+    color: var(--ink-muted);
+  }
+
+  .data__table tbody th {
     width: 38%;
     font-weight: 600;
   }
@@ -836,8 +940,8 @@ const tools = [
     .hero__action,
     .specimen--web,
     .specimen--print,
-    .habits__title,
-    .habits__table,
+    .data__title,
+    .data__table,
     .family,
     .report,
     .swatch,
@@ -851,11 +955,19 @@ const tools = [
       text-align: start;
     }
 
-    .habits__title {
+    .data__title {
       max-width: none;
     }
 
-    .habits__table tbody th {
+    .data__note {
+      grid-column: 1 / -1;
+    }
+
+    .data__table--numbers {
+      font-size: var(--step--1);
+    }
+
+    .data__table tbody th {
       width: 45%;
     }
 
@@ -878,8 +990,8 @@ const tools = [
     .hero__action,
     .specimen--web,
     .specimen--print,
-    .habits__title,
-    .habits__table,
+    .data__title,
+    .data__table,
     .report,
     .swatch,
     .verdicts,
